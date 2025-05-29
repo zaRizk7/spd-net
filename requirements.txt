@@ -1,15 +1,16 @@
-# PyTorch
-torch==2.7.0
-
-# Data analysis and wrangling
-pandas
-matplotlib
-seaborn
-
-# Code formatting and CLI development
-jsonargparse==4.40.0
 black==24.4.2
 isort==5.13.2
 
+# Code formatting and CLI development
+jsonargparse==4.40.0
+matplotlib
+
 # Neuroimaging libraries (dataset and feature extraction)
 nilearn==0.11.1
+
+# Data analysis and wrangling
+pandas
+pre-commit==4.2.0
+seaborn
+# PyTorch
+torch==2.7.0
