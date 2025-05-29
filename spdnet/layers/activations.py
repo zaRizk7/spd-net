@@ -80,7 +80,7 @@ class EigenActivation(nn.Module):
     eps: float
 
     def __init__(self, activation="rectify", eps=1e-5):
-        if activation not in ("rectify", "log", "exp"):
+        if activation not in {"rectify", "log", "exp"}:
             msg = f"activation must be one of 'rectify', 'log', or 'exp'. Got '{activation}'."
             raise ValueError(msg)
 
