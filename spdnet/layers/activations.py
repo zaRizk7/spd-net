@@ -4,7 +4,21 @@ from torch import nn
 
 __all__ = ["EigenActivation"]
 
-EINSUM_PATTERN = "...ij,...j,...kj->...ik"
+
+def eigen_to_matrix(eigenvalues, eigenvectors):
+    """
+    Convert eigenvalues and eigenvectors to a SPD matrix.
+
+    Args:
+        eigenvalues (torch.Tensor): Eigenvalues of shape (..., n).
+        eigenvectors (torch.Tensor): Eigenvectors of shape (..., n, n).
+
+    Returns:
+        torch.Tensor: SPD matrix of shape (..., n, n).
+    """
+    return torch.einsum(
+        "...ij,...j,...kj->...ik", eigenvectors, eigenvalues, eigenvectors
+    )
 
 
 def matrix_rectification(x, eps=1e-5):
@@ -21,7 +35,7 @@ def matrix_rectification(x, eps=1e-5):
     """
     eigenvalues, eigenvectors = la.eigh(x)
     eigenvalues = torch.maximum(eigenvalues, eps)
-    return torch.einsum(EINSUM_PATTERN, eigenvectors, eigenvalues, eigenvectors)
+    return eigen_to_matrix(eigenvalues, eigenvectors)
 
 
 def matrix_exponential(x):
@@ -35,9 +49,8 @@ def matrix_exponential(x):
         torch.Tensor: Tensor with exponential of eigenvalues.
     """
     eigenvalues, eigenvectors = la.eigh(x)
-    return torch.einsum(
-        EINSUM_PATTERN, eigenvectors, torch.exp(eigenvalues), eigenvectors
-    )
+    eigenvalues = torch.exp(eigenvalues)
+    return eigen_to_matrix(eigenvalues, eigenvectors)
 
 
 def matrix_logarithm(x):
@@ -51,9 +64,8 @@ def matrix_logarithm(x):
         torch.Tensor: Tensor with logarithm of eigenvalues.
     """
     eigenvalues, eigenvectors = la.eigh(x)
-    return torch.einsum(
-        EINSUM_PATTERN, eigenvectors, torch.log(eigenvalues), eigenvectors
-    )
+    eigenvalues = torch.log(eigenvalues)
+    return eigen_to_matrix(eigenvalues, eigenvectors)
 
 
 class EigenActivation(nn.Module):
