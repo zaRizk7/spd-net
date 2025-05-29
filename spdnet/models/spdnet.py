@@ -23,7 +23,8 @@ class SPDNet(nn.Sequential):
 
     def __init__(self, num_spatials, num_outputs=None):
         if len(num_spatials) < 2:
-            raise ValueError("num_spatials must contain at least two spatial dimensions.")
+            msg = "num_spatials must contain at least two spatial dimensions."
+            raise ValueError(msg)
 
         super().__init__()
 
