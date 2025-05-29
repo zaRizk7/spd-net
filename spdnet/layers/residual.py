@@ -1,5 +1,4 @@
 import torch
-from torch import nn
 
 from .activations import matrix_exponential, matrix_logarithm
 
