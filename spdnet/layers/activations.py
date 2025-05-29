@@ -16,9 +16,7 @@ def eigen_to_matrix(eigenvalues, eigenvectors):
     Returns:
         torch.Tensor: SPD matrix of shape (..., n, n).
     """
-    return torch.einsum(
-        "...ij,...j,...kj->...ik", eigenvectors, eigenvalues, eigenvectors
-    )
+    return torch.einsum("...ij,...j,...kj->...ik", eigenvectors, eigenvalues, eigenvectors)
 
 
 def matrix_rectification(x, eps=1e-5):
