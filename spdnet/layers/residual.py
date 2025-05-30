@@ -2,10 +2,10 @@ import torch
 
 from .activations import matrix_exponential, matrix_logarithm
 
-__all__ = ["aritmetic_mean"]
+__all__ = ["arithmetic_mean"]
 
 
-def aritmetic_mean(*x):
+def arithmetic_mean(*x):
     """
     Compute the arithmetic mean of a batch of SPD matrices.
 
