@@ -1,6 +1,6 @@
 from torch import nn
 
-from ..layers import *
+from ..layers import EigenActivation, arithmetic_mean
 from .spdnet import SPDNet
 
 __all__ = ["USPDNet"]

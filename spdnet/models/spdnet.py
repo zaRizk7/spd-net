@@ -1,6 +1,6 @@
 from torch import nn
 
-from ..layers import *
+from ..layers import BiMap, EigenActivation
 
 __all__ = ["SPDNet"]
 
