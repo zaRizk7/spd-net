@@ -19,9 +19,13 @@ class SPDNet(nn.Sequential):
             Number of outputs for the final linear layer.
             If None, the network will not have a final linear layer.
             Defaults to None.
+
+        rectify_last (bool, optional):
+            Whether to apply a ReEig after the last BiMap.
+            Defaults to False.
     """
 
-    def __init__(self, num_spatials, num_outputs=None):
+    def __init__(self, num_spatials, num_outputs=None, rectify_last=False):
         if len(num_spatials) < 2:
             msg = "num_spatials must contain at least two spatial dimensions."
             raise ValueError(msg)
@@ -35,6 +39,10 @@ class SPDNet(nn.Sequential):
             name = f"bimap_{i:0=2d}"
             layer = BiMap(in_spatial, out_spatial)
             self.add_module(name, layer)
+
+            # Check last layer and skip ReEig if it's a subnetwork
+            if i == len(num_spatials) - 1 and not rectify_last:
+                continue
 
             name = f"reeig_{i:0=2d}"
             layer = EigenActivation("rectify")
