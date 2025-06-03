@@ -84,19 +84,3 @@ class USPDNet(nn.Module):
             return x, y
 
         return x
-
-
-# Sanity check for the model
-if __name__ == "__main__":
-    import torch
-
-    model = USPDNet([16, 8, 4], use_batch_norm=True).cuda()
-    # force SPD input
-    x = torch.randn(32, 16, 16)
-    U, S, V = torch.linalg.svd(x)
-    x = torch.einsum("...ij,...j,...kj->...ik", V, S.clamp(min=1e-5), V)
-    x = (x + x.mT) / 2
-    output = model(x.cuda())
-
-    assert torch.linalg.norm(output[0] - output[0].mT) < 1e-5, "Output is not symmetric"
-    print(output[0])
