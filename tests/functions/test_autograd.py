@@ -2,10 +2,7 @@ import pytest
 import torch
 from torch.autograd import gradcheck, gradgradcheck
 
-from spdnet.functions.exponential import SymmetricMatrixExponential
-from spdnet.functions.logarithm import SymmetricMatrixLogarithm
-from spdnet.functions.power import SymmetricMatrixPower
-from spdnet.functions.rectification import SymmetricMatrixRectification
+from spdnet.functions import sym_mat_exp, sym_mat_log, sym_mat_pow, sym_mat_rec
 
 
 def gradcheck_fn(func, x):
@@ -18,33 +15,33 @@ def gradcheck_fn(func, x):
     assert gradcheck(func, [x[0].unsqueeze(0)])
 
 
-def test_symmetric_matrix_logarithm(x):
+def test_sym_mat_log(x):
     """
-    Test the SymmetricMatrixLogarithm function using gradcheck.
+    Test the sym_mat_log function using gradcheck.
     """
-    gradcheck_fn(SymmetricMatrixLogarithm.apply, x)
+    gradcheck_fn(sym_mat_log, x)
 
 
-def test_symmetric_matrix_exponential(x):
+def test_sym_mat_exp(x):
     """
-    Test the SymmetricMatrixExponential function using gradcheck.
+    Test the sym_mat_exp function using gradcheck.
     """
-    gradcheck_fn(SymmetricMatrixExponential.apply, x)
+    gradcheck_fn(sym_mat_exp, x)
 
 
 @pytest.mark.parametrize("p", [2, -1, 1 / 2])
-def test_symmetric_matrix_power(x, p):
+def test_sym_mat_pow(x, p):
     """
-    Test the SymmetricMatrixPower function using gradcheck.
+    Test the sym_mat_pow function using gradcheck.
     """
-    gradcheck_fn(lambda x: SymmetricMatrixPower.apply(x, p), x)
+    gradcheck_fn(lambda x: sym_mat_pow(x, p), x)
     p = torch.tensor(p, dtype=torch.float64).requires_grad_()
-    gradcheck_fn(lambda x: SymmetricMatrixPower.apply(x, p), x)
+    gradcheck_fn(lambda x: sym_mat_pow(x, p), x)
 
 
 @pytest.mark.parametrize("eps", [1e-4, 1e-5, 1e-6])
-def test_symmetric_matrix_rectification(x, eps):
+def test_sym_mat_rec(x, eps):
     """
-    Test the SymmetricMatrixRectification function using gradcheck.
+    Test the sym_mat_rec function using gradcheck.
     """
-    gradcheck_fn(lambda x: SymmetricMatrixRectification.apply(x, eps), x)
+    gradcheck_fn(lambda x: sym_mat_rec(x, eps), x)

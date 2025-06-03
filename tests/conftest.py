@@ -1,5 +1,6 @@
 import pytest
 import torch
+
 from .toy_data import make_spd_matrix
 
 BATCH_SIZE = 5
