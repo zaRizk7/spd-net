@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from ..functions import affine_invariant_distance, karcher_flow, powmap, parallel_transport
+from ..functions import affine_invariant_distance, karcher_flow, parallel_transport, powmap
 
 __all__ = ["RiemannianBatchNorm"]
 
@@ -43,11 +43,19 @@ class RiemannianBatchNorm(nn.Module):
         - output: (*, num_spatial, num_spatial)
 
     Attributes:
-        - scale (torch.nn.Parameter): Learnable scaling factor for normalization.
+        - scale (torch.Tensor): Learnable scaling factor for normalization.
         - running_mean (torch.Tensor): Running mean of the SPD matrices.
         - running_var (torch.Tensor): Running variance of the SPD matrices.
-        - eps (torch.Tensor): Small value for numerical stability.
     """
+
+    __constants__ = ["num_spatial", "karcher_flow_steps", "momentum", "eps"]
+    num_spatial: int
+    karcher_flow_steps: int
+    momentum: float
+    eps: float
+    scale: torch.Tensor
+    running_mean: torch.Tensor
+    running_var: torch.Tensor
 
     def __init__(self, num_spatial, karcher_flow_steps=1, momentum=0.1, eps=1e-5, device=None, dtype=None):
         factory_kwargs = {"device": device, "dtype": dtype}
@@ -74,11 +82,17 @@ class RiemannianBatchNorm(nn.Module):
     def update_and_fetch_stats(self, x):
         """Update running statistics and return the current mean and variance.
 
+        Like original batch normalization, this method has two behaviors:
+        1. During training (`self.train()), it computes the mean and variance of the input SPD matrices,
+           updates the running statistics, and returns the computed mean and standard deviation.
+
+        2. During evaluation (`self.eval()`), it returns the running mean and standard deviation.
+
         Args:
             x (torch.Tensor): Input SPD matrix of shape (..., num_spatial, num_spatial).
 
         Returns:
-            tuple (torch.Tensor, torch.Tensor): Mean and variance of the SPD matrices.
+            tuple (torch.Tensor, torch.Tensor): Mean and standard deviation of the SPD matrices.
         """
         if not self.training:
             return self.running_mean, torch.sqrt(self.running_var)
