@@ -1,3 +1,3 @@
 from .activations import *
 from .bimap import *
-from .residual import *
+from .normalizations import *

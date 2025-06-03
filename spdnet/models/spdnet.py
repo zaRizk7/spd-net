@@ -1,6 +1,6 @@
 from torch import nn
 
-from ..layers import BiMap, EigenActivation
+from ..layers import BiMap, EigenActivation, RiemannianBatchNorm
 
 __all__ = ["SPDNet"]
 
@@ -25,7 +25,10 @@ class SPDNet(nn.Sequential):
             Defaults to False.
     """
 
-    def __init__(self, num_spatials, num_outputs=None, rectify_last=False):
+    def __init__(
+        self, num_spatials, num_outputs=None, rectify_last=False, use_batch_norm=False, device=None, dtype=None
+    ):
+        factory_kwargs = {"device": device, "dtype": dtype}
         if len(num_spatials) < 2:
             msg = "num_spatials must contain at least two spatial dimensions."
             raise ValueError(msg)
@@ -37,22 +40,27 @@ class SPDNet(nn.Sequential):
             out_spatial = num_spatials[i]
 
             name = f"bimap_{i:0=2d}"
-            layer = BiMap(in_spatial, out_spatial)
+            layer = BiMap(in_spatial, out_spatial, **factory_kwargs)
             self.add_module(name, layer)
+
+            if use_batch_norm:
+                name = f"bn_{i:0=2d}"
+                layer = RiemannianBatchNorm(out_spatial, **factory_kwargs)
+                self.add_module(name, layer)
 
             # Check last layer and skip ReEig if it's a subnetwork
             if i == len(num_spatials) - 1 and not rectify_last:
                 continue
 
             name = f"reeig_{i:0=2d}"
-            layer = EigenActivation("rectify")
+            layer = EigenActivation("rectify", **factory_kwargs)
             self.add_module(name, layer)
 
         if num_outputs is not None:
             output_layer = nn.Sequential()
 
             name = "logeig"
-            layer = EigenActivation("log")
+            layer = EigenActivation("log", **factory_kwargs)
             output_layer.add_module(name, layer)
 
             name = "flatten"
@@ -60,7 +68,7 @@ class SPDNet(nn.Sequential):
             output_layer.add_module(name, layer)
 
             name = "linear"
-            layer = nn.Linear(out_spatial**2, num_outputs)
+            layer = nn.Linear(out_spatial**2, num_outputs, **factory_kwargs)
             output_layer.add_module(name, layer)
 
             self.add_module("output", output_layer)
