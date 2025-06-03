@@ -1,6 +1,6 @@
 import torch
-from .affine_invariant import *
 
+from .affine_invariant import *
 
 # For now, we limit the computation to AIRM, it can be extended to other metrics later.
 
