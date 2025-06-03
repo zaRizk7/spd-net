@@ -46,16 +46,17 @@ class RiemannianBatchNorm(nn.Module):
         - scale (torch.Tensor): Learnable scaling factor for normalization.
         - running_mean (torch.Tensor): Running mean of the SPD matrices.
         - running_var (torch.Tensor): Running variance of the SPD matrices.
+        - eps (torch.Tensor): Small value to avoid division by zero.
     """
 
     __constants__ = ["num_spatial", "karcher_flow_steps", "momentum", "eps"]
     num_spatial: int
     karcher_flow_steps: int
     momentum: float
-    eps: float
     scale: torch.Tensor
     running_mean: torch.Tensor
     running_var: torch.Tensor
+    eps: float
 
     def __init__(self, num_spatial, karcher_flow_steps=1, momentum=0.1, eps=1e-5, device=None, dtype=None):
         factory_kwargs = {"device": device, "dtype": dtype}
@@ -63,11 +64,11 @@ class RiemannianBatchNorm(nn.Module):
         self.num_spatial = num_spatial
         self.karcher_flow_steps = karcher_flow_steps
         self.momentum = momentum
-        self.eps = eps
 
         self.scale = nn.Parameter(torch.ones(1, **factory_kwargs))
         self.register_buffer("running_mean", torch.eye(num_spatial, **factory_kwargs))
         self.register_buffer("running_var", torch.ones(1, **factory_kwargs))
+        self.register_buffer("eps", torch.tensor(eps, **factory_kwargs))
 
     def forward(self, x):
         mean, std = self.update_and_fetch_stats(x)
