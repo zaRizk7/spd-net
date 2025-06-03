@@ -1,5 +1,4 @@
-import torch
-
+import opt_einsum as oe
 
 __all__ = ["eig2matrix", "bdot", "bilinear"]
 
@@ -15,7 +14,7 @@ def eig2matrix(eigvals, eigvecs):
     Returns:
         torch.Tensor: SPD matrix of shape (..., n, n).
     """
-    return torch.einsum("...ij,...j,...kj->...ik", eigvecs, eigvals, eigvecs)
+    return oe.contract("...ij,...j,...kj->...ik", eigvecs, eigvals, eigvecs)
 
 
 def bdot(x, z):
@@ -29,7 +28,7 @@ def bdot(x, z):
     Returns:
         torch.Tensor: Batched dot product of shape (..., n, m).
     """
-    return torch.einsum("...ij,...jk->...ik", x, z)
+    return oe.contract("...ij,...jk->...ik", x, z)
 
 
 def bilinear(x, z):
@@ -43,4 +42,4 @@ def bilinear(x, z):
     Returns:
         torch.Tensor: Transformed SPD matrix of shape (..., m, m).
     """
-    return torch.einsum("...ki,...ij,...lj->...kl", z, x, z)
+    return oe.contract("...ki,...ij,...lj->...kl", z, x, z)
