@@ -36,6 +36,9 @@ all = [
 line-length = 120
 target-version = ["py310"]
 
+[tool.pytest.ini_options]
+addopts = "-v --cov=spdnet --cov-report term-missing"
+
 [tool.isort]
 known_first_party = ["spdnet"]
 profile = "black"
