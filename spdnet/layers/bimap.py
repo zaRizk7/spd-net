@@ -3,21 +3,9 @@ from torch import nn
 from torch.nn import init
 from torch.nn.utils.parametrizations import orthogonal
 
+from ..functions import bilinear
+
 __all__ = ["BiMap"]
-
-
-def bimap(x, weight):
-    """
-    Bilinear mapping of SPD matrices using the weight matrix.
-
-    Args:
-        x (torch.Tensor): Input SPD matrix of shape (..., n, n).
-        weight (torch.Tensor): Weight matrix of shape (m, n).
-
-    Returns:
-        torch.Tensor: Transformed SPD matrix of shape (..., m, m).
-    """
-    return torch.einsum("ki,...ij,lj->...kl", weight, x, weight)
 
 
 class BiMap(nn.Module):
@@ -36,7 +24,7 @@ class BiMap(nn.Module):
         - output: (*, out_spatial, out_spatial)
 
     Attributes:
-        - weight (Tensor): The learnable weight of shape (in_spatial, out_spatial).
+        - weight (torch.Tensor): The learnable weight of shape (in_spatial, out_spatial).
     """
 
     __constants__ = ["in_spatial", "out_spatial"]
@@ -59,4 +47,4 @@ class BiMap(nn.Module):
         init.orthogonal_(self.weight)
 
     def forward(self, x):
-        return bimap(x, self.weight)
+        return bilinear(x, self.weight)
