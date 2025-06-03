@@ -1,6 +1,7 @@
 import torch
 from torch import autograd
-from .inner import eig2matrix, bilinear
+
+from .inner import bilinear, eig2matrix
 from .linalg import loewner_matrix
 
 __all__ = [
@@ -41,10 +42,10 @@ class SymmetricMatrixLogarithm(autograd.Function):
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
         eps = torch.finfo(eigvals.dtype).eps
         df_eigvals = 1 / (eigvals + eps)
-        l = loewner_matrix(eigvals, f_eigvals, df_eigvals)
+        L = loewner_matrix(eigvals, f_eigvals, df_eigvals)
 
         dx = bilinear(dy, eigvecs.mT)
-        dx *= l
+        dx *= L
         dx = bilinear(dx, eigvecs)
         return (dx + dx.mT) / 2
 
@@ -75,11 +76,10 @@ class SymmetricMatrixExponential(autograd.Function):
     @staticmethod
     def backward(ctx, dy):
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
-        eps = torch.finfo(eigvals.dtype).eps
-        l = loewner_matrix(eigvals, f_eigvals, f_eigvals)
+        L = loewner_matrix(eigvals, f_eigvals, f_eigvals)
 
         dx = bilinear(dy, eigvecs.mT)
-        dx *= l
+        dx *= L
         dx = bilinear(dx, eigvecs)
         return (dx + dx.mT) / 2
 
@@ -115,10 +115,10 @@ class SymmetricMatrixPower(autograd.Function):
         eps = torch.finfo(eigvals.dtype).eps
 
         df_eigvals = ctx.p * f_eigvals / (eigvals + eps)
-        l = loewner_matrix(eigvals, f_eigvals, df_eigvals)
+        L = loewner_matrix(eigvals, f_eigvals, df_eigvals)
 
         dx = bilinear(dy, eigvecs.mT)
-        dx *= l
+        dx *= L
         dx = bilinear(dx, eigvecs)
         return (dx + dx.mT) / 2, None
 
@@ -154,9 +154,9 @@ class SymmetricMatrixRectification(autograd.Function):
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
 
         df_eigvals = torch.where(eigvals > ctx.eps, 1, 0)
-        l = loewner_matrix(eigvals, f_eigvals, df_eigvals)
+        L = loewner_matrix(eigvals, f_eigvals, df_eigvals)
 
         dx = bilinear(dy, eigvecs.mT)
-        dx *= l
+        dx *= L
         dx = bilinear(dx, eigvecs)
         return (dx + dx.mT) / 2, None
