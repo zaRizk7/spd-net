@@ -194,6 +194,7 @@ def affine_invariant_distance(x, z):
     product of the inverse square root of z and x, and the square root of z.
     The formula is:
         d(x, z) = || log(z^{-1/2} * x * z^{-1/2}) ||_F
+
     Args:
         x (torch.Tensor): SPD matrix (..., n, n).
         z (torch.Tensor): Reference SPD matrix (..., n, n).
