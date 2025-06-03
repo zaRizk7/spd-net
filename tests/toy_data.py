@@ -6,7 +6,6 @@ def make_spd_matrix(size, device=None, dtype=None):
     Create a random symmetric positive definite matrix of given size.
 
     Args:
-        batch (int): Number of matrices to create.
         size (int): Size of the matrix (n x n).
         device (torch.device, optional): Device to create the tensor on.
         dtype (torch.dtype, optional): Data type of the tensor.
