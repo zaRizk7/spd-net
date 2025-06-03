@@ -24,11 +24,11 @@ class USPDNet(nn.Module):
     """
 
     def __init__(self, num_spatials, num_outputs=None, use_batch_norm=False, device=None, dtype=None):
-        factory_kwargs = {"device": device, "dtype": dtype}
         if len(num_spatials) < 2:
             msg = "num_spatials must contain at least two spatial dimensions."
             raise ValueError(msg)
 
+        factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
 
         self.encoder = nn.ModuleList()
