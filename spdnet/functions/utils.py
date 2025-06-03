@@ -1,7 +1,9 @@
 import torch
 
+__all__ = ["loewner_matrix"]
 
-def loewner_matrix(eigvals, f_eigvals, df_eigvals):
+
+def loewner(eigvals, f_eigvals, df_eigvals):
     """
     Compute the Loewner matrix for function f and its derivative df
     on the eigenvalues.
