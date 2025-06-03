@@ -23,10 +23,10 @@ class SymmetricMatrixLogarithm(autograd.Function):
     The backward pass computes the gradient via the Loewner matrix.
 
     Args:
-        x (Tensor): A symmetric matrix of shape (..., N, N).
+        x (torch.Tensor): A symmetric matrix of shape (..., N, N).
 
     Returns:
-        Tensor: The matrix logarithm of `x` with the same shape (..., N, N).
+        torch.Tensor: The matrix logarithm of `x` with the same shape (..., N, N).
     """
 
     @staticmethod
@@ -59,10 +59,10 @@ class SymmetricMatrixExponential(autograd.Function):
     where X = Q @ diag(λ) @ Q.T is the eigendecomposition of the symmetric matrix X.
 
     Args:
-        x (Tensor): A symmetric matrix of shape (..., N, N).
+        x (torch.Tensor): A symmetric matrix of shape (..., N, N).
 
     Returns:
-        Tensor: The matrix exponential of `x` with the same shape (..., N, N).
+        torch.Tensor: The matrix exponential of `x` with the same shape (..., N, N).
     """
 
     @staticmethod
@@ -93,11 +93,11 @@ class SymmetricMatrixPower(autograd.Function):
     where X = Q @ diag(λ) @ Q.T is the eigendecomposition of the symmetric matrix X.
 
     Args:
-        x (Tensor): A symmetric matrix of shape (..., N, N).
+        x (torch.Tensor): A symmetric matrix of shape (..., N, N).
         p (float): The power to raise the matrix to.
 
     Returns:
-        Tensor: The result of raising `x` to the power `p`, with shape (..., N, N).
+        torch.Tensor: The result of raising `x` to the power `p`, with shape (..., N, N).
     """
 
     @staticmethod
@@ -133,11 +133,11 @@ class SymmetricMatrixRectification(autograd.Function):
     Useful for enforcing positive-definiteness of nearly semi-definite matrices.
 
     Args:
-        x (Tensor): A symmetric matrix of shape (..., N, N).
+        x (torch.Tensor): A symmetric matrix of shape (..., N, N).
         eps (float, optional): Minimum eigenvalue threshold. Default is 1e-5.
 
     Returns:
-        Tensor: Rectified matrix with eigenvalues clamped from below.
+        torch.Tensor: Rectified matrix with eigenvalues clamped from below.
     """
 
     @staticmethod
