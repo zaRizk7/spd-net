@@ -176,7 +176,7 @@ def karcher_flow(x, steps=1):
     Returns:
         torch.Tensor: Tensor with the Karcher mean of the input matrices.
     """
-    # 1. sample a single point on the manifold
+    # 1. sample a single point on the manifold as reference point
     index = torch.randint(0, x.shape[0], (1,))[0]
     mu = x[index]
 
@@ -224,12 +224,11 @@ def parallel_transport(x, z, s=None):
     Returns:
         torch.Tensor: Parallel transported matrix.
     """
-    z_inv = invmap(z)
-
     if s is None:
         e = powmap(z, -0.5)
         return bilinear(x, e)
 
+    z_inv = invmap(z)
     e = bdot(z_inv, s)
     e = powmap(e, 0.5)
     return bilinear(x, e)
