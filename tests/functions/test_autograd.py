@@ -12,7 +12,7 @@ def gradcheck_fn(func, x):
     # Batched input testing
     assert gradcheck(func, [x])
     # Single input testing
-    assert gradcheck(func, [x[0].unsqueeze(0)])
+    assert gradcheck(func, [x[0]])
 
 
 def test_sym_mat_log(x):
