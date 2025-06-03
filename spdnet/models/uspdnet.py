@@ -21,6 +21,18 @@ class USPDNet(nn.Module):
             Number of outputs for the final linear layer.
             If None, the network will not have a final linear layer.
             Defaults to None.
+
+        use_batch_norm (bool, optional):
+            Whether to use Riemannian batch normalization in the encoder.
+            Defaults to False.
+
+        device (torch.device, optional):
+            Device to place the model parameters on.
+            Defaults to None, which uses the default device.
+
+        dtype (torch.dtype, optional):
+            Data type for the model parameters.
+            Defaults to None, which uses the default data type.
     """
 
     def __init__(self, num_spatials, num_outputs=None, use_batch_norm=False, device=None, dtype=None):

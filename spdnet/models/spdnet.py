@@ -23,6 +23,18 @@ class SPDNet(nn.Sequential):
         rectify_last (bool, optional):
             Whether to apply a ReEig after the last BiMap.
             Defaults to False.
+
+        use_batch_norm (bool, optional):
+            Whether to use Riemannian batch normalization in the encoder.
+            Defaults to False.
+
+        device (torch.device, optional):
+            Device to place the model parameters on.
+            Defaults to None, which uses the default device.
+
+        dtype (torch.dtype, optional):
+            Data type for the model parameters.
+            Defaults to None, which uses the default data type.
     """
 
     def __init__(
