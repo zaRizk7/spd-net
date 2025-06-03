@@ -1,6 +1,6 @@
 import torch
 
-__all__ = ["loewner_matrix"]
+__all__ = ["loewner"]
 
 
 def loewner(eigvals, f_eigvals, df_eigvals):

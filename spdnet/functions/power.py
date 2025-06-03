@@ -1,6 +1,6 @@
+import opt_einsum as oe
 import torch
 from torch.autograd import Function
-import opt_einsum as oe
 
 from .inner import bilinear, eig2matrix
 from .utils import loewner as _loewner
