@@ -1,7 +1,7 @@
 from torch import nn
 
-from ..functions import frechet_mean
 from ..layers import EigenActivation
+from ..metrics import frechet_mean
 from .spdnet import SPDNet
 
 __all__ = ["USPDNet"]

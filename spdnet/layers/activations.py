@@ -2,7 +2,7 @@ import torch
 from torch import linalg as la
 from torch import nn
 
-from ..functions import expmap, logmap, recmap
+from ..functions import sym_mat_exp, sym_mat_log, sym_mat_rec
 
 __all__ = ["EigenActivation"]
 
@@ -34,7 +34,7 @@ class EigenActivation(nn.Module):
 
     def forward(self, x):
         if self.activation == "rectify":
-            return recmap(x, eps=self.eps)
+            return sym_mat_rec(x, self.eps)
         elif self.activation == "log":
-            return logmap(x)
-        return expmap(x)
+            return sym_mat_log(x)
+        return sym_mat_exp(x)
