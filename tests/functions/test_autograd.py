@@ -1,8 +1,9 @@
 import pytest
-from spdnet.functions.autograd import *
+import torch
 from torch.autograd import gradcheck, gradgradcheck
 
-import torch
+from spdnet.functions.autograd import *
+
 from ..toy_data import make_spd_matrix
 
 torch.manual_seed(0)
@@ -54,5 +55,5 @@ def test_symmetric_matrix_rectification(x):
     """
     Test the SymmetricMatrixRectification function using gradcheck.
     """
-    eps = 1e-5
-    gradcheck_fn(lambda x: SymmetricMatrixRectification.apply(x, eps), x)
+    for eps in [1e-4, 1e-5, 1e-6]:
+        gradcheck_fn(lambda x: SymmetricMatrixRectification.apply(x, eps), x)
