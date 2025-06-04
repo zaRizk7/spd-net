@@ -50,7 +50,7 @@ def forward(x, ctx=None):
     Returns:
         torch.Tensor: Matrix exponential of `x`, of shape (..., N, N).
     """
-    x = (x + x.mT) / 2  # Ensure symmetry
+    x = (x + x.mT) / 2
     eigvals, eigvecs = torch.linalg.eigh(x)
     f_eigvals = torch.exp(eigvals)
     if ctx is not None:
@@ -74,7 +74,7 @@ def backward(dy, f_eigvals, eigvals, eigvecs):
     dx = bilinear(dy, eigvecs.mT)
     dx *= loewner(eigvals, f_eigvals)
     dx = bilinear(dx, eigvecs)
-    return (dx + dx.mT) / 2  # Ensure symmetry
+    return (dx + dx.mT) / 2
 
 
 def loewner(eigvals, f_eigvals=None):

@@ -99,7 +99,7 @@ def forward(x, p, ctx=None):
     Returns:
         torch.Tensor: Matrix raised to the power `p`, of shape (..., N, N).
     """
-    x = (x + x.mT) / 2  # Ensure symmetry
+    x = (x + x.mT) / 2
     eigvals, eigvecs = torch.linalg.eigh(x)
     f_eigvals = torch.pow(eigvals, p)
     if ctx is not None:

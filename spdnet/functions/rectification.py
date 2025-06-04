@@ -56,7 +56,7 @@ def forward(x, eps, ctx=None):
     Returns:
         torch.Tensor: Rectified symmetric matrix, shape (..., N, N).
     """
-    x = (x + x.mT) / 2  # Ensure symmetry
+    x = (x + x.mT) / 2
     eigvals, eigvecs = torch.linalg.eigh(x)
     f_eigvals = torch.clamp(eigvals, eps)
     if ctx is not None:
