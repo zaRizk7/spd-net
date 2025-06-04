@@ -79,15 +79,13 @@ class USPDNet(nn.Module):
         # Encode, keep intermediate outputs for skip connections
         zs = []
 
-        i = 0
         for layer in self.encoder:
             x = layer(x)
             zs.append(x)
-            i += 1
 
         # Decode and apply skip connections
         for layer, z in zip(self.decoder, reversed(zs[:-1])):
-            x = frechet_mean(layer(x), z)
+            x = frechet_mean(layer(x), z, metric="lem")
         x = self.decoder[-1](x)
 
         # Return with prediction if output layer is defined
