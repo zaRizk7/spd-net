@@ -1,6 +1,7 @@
 import opt_einsum as oe
+import torch
 
-__all__ = ["eig2matrix", "bdot", "bilinear"]
+__all__ = ["eig2matrix", "bdot", "bilinear", "trace", "fro"]
 
 
 def eig2matrix(eigvals, eigvecs):
@@ -43,3 +44,29 @@ def bilinear(x, z):
         torch.Tensor: Transformed SPD matrix of shape (..., m, m).
     """
     return oe.contract("...ki,...ij,...lj->...kl", z, x, z)
+
+
+def trace(x):
+    """
+    Computes the trace of a batched SPD matrix.
+
+    Args:
+        x (torch.Tensor): Input SPD matrix of shape (..., n, n).
+
+    Returns:
+        torch.Tensor: Trace of the matrix, shape (...,).
+    """
+    return oe.contract("...ii->...", x)
+
+
+def fro(x):
+    """
+    Computes the Frobenius norm of a batched SPD matrix.
+
+    Args:
+        x (torch.Tensor): Input SPD matrix of shape (..., n, n).
+
+    Returns:
+        torch.Tensor: Frobenius norm of the matrix, shape (...,).
+    """
+    return torch.sqrt(oe.contract("...ij,...ij->...", x, x))
