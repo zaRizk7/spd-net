@@ -1,10 +1,11 @@
 import opt_einsum as oe
 import torch
 
-from spdnet.functions import (
+from ..functions import (
     bdot,
     bilinear,
     eig2matrix,
+    fro,
     sym_mat_exp,
     sym_mat_inv,
     sym_mat_log,
@@ -38,8 +39,7 @@ def airm_distance(x, z=None):
         z_inv_sqrt = sym_mat_pow(z, -0.5)
         d = bilinear(x, z_inv_sqrt)
         d = sym_mat_log(d)
-    d = oe.contract("...ij,...ij->...", d, d)
-    return torch.sqrt(d)
+    return fro(d)
 
 
 def airm_geodesic(x, z=None, p=0.5):
@@ -60,6 +60,9 @@ def airm_geodesic(x, z=None, p=0.5):
     Returns:
         torch.Tensor: Interpolated SPD matrix (..., N, N).
     """
+    if not (0.0 <= p <= 1.0):
+        raise ValueError("Parameter 'p' must lie in the interval [0, 1].")
+
     if z is None:
         return sym_mat_pow(x, p)
 
