@@ -5,12 +5,12 @@ from ..functions import (
     bdot,
     bilinear,
     eig2matrix,
+    fro,
     sym_mat_exp,
     sym_mat_inv,
     sym_mat_log,
     sym_mat_pow,
     sym_mat_sqrt,
-    fro,
 )
 
 
