@@ -161,7 +161,7 @@ def airm_parallel_transport(x, z=None, s=None):
         return x
     elif z is None:
         # PT_{I→s}(x) = s^{1/2} x s^{1/2}
-        e = sym_mat_pow(s, 0.5)
+        e = sym_mat_sqrt(s)
     elif s is None:
         # PT_{z→I}(x) = (z^{-1})^{1/2} x (z^{-1})^{1/2}
         e = sym_mat_pow(z, -0.5)
@@ -169,6 +169,6 @@ def airm_parallel_transport(x, z=None, s=None):
         # PT_{z→s}(x) = (z^{-1} s)^{1/2} x (z^{-1} s)^{1/2}
         z_inv = sym_mat_inv(z)
         e = bdot(z_inv, s)
-        e = sym_mat_pow(e, 0.5)
+        e = sym_mat_sqrt(e)
 
     return bilinear(x, e)
