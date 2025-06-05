@@ -13,6 +13,8 @@ from ..functions import (
     sym_mat_sqrt,
 )
 
+__all__ = ["lem_distance", "lem_geodesic", "lem_log", "lem_exp", "lem_parallel_transport"]
+
 
 def lem_distance(x, z=None):
     """
