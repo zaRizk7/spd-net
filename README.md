@@ -2,4 +2,9 @@
 
 Neural nets to efficiently process SPD matrix.
 
-I don't plan to make this into official package, this is just my practice to implement more advanced neural networks from scratch with clean code and easy to follow implementation. I mainly interested in these kinds of network due to how efficient it is processing multi-source time series which is then used to produce covariance matrices. It is commonly used to model fMRI's functional connectivity or for ECG/EEG data.
+# Disclaimer
+
+- I don't plan to make this into official package.
+- This repo is more of a way for me to revise my PyTorch coding skills and understanding ML papers.
+- I think these kinds of networks is interesting due to how efficient it is in modelling types of features used in signal processing, notably functional connectivity for fMRI.
+- I do plan to document this code as I implement several variations to use for my own research, it is important to have an easy to use implementation to work with.
