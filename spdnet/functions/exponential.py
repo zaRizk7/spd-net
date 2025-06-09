@@ -8,31 +8,43 @@ from .utils import loewner as _loewner
 __all__ = ["sym_mat_exp"]
 
 
-def sym_mat_exp(x):
-    """
-    Compute the matrix exponential of a symmetric matrix using its eigendecomposition.
+def sym_mat_exp(x: torch.Tensor) -> torch.Tensor:
+    r"""
+    Computes the matrix exponential of a symmetric matrix using eigendecomposition.
 
-    Given a symmetric matrix `X`, this computes:
-        exp(X) = Q @ diag(exp(λ)) @ Q.T
-    where X = Q @ diag(λ) @ Q.T is the eigendecomposition of X.
+    For a symmetric matrix `x`, this computes:
+
+        exp(x) = Q @ diag(exp(λ)) @ Q.T
+
+    where `x = Q @ diag(λ) @ Q.T` is the eigendecomposition of `x`.
 
     Args:
-        x (torch.Tensor): Symmetric matrix of shape (..., N, N).
+        x (torch.Tensor): Symmetric matrix of shape `(..., N, N)`.
 
     Returns:
-        torch.Tensor: Matrix exponential of `x`, of shape (..., N, N).
+        torch.Tensor: Matrix exponential of shape `(..., N, N)`.
     """
     return SymmetricMatrixExponential.apply(x)
 
 
 class SymmetricMatrixExponential(Function):
-    """
-    Autograd-compatible implementation of matrix exponential for symmetric matrices
-    using eigendecomposition and the Loewner matrix for gradient computation.
+    r"""
+    Autograd-compatible function for computing the matrix exponential of symmetric matrices.
+
+    Forward:
+        Computes `exp(x)` via eigendecomposition and applies the exponential to eigenvalues.
+
+    Backward:
+        Uses the Loewner matrix to compute the derivative of `exp(x)`:
+            d(exp(x)) = V @ [L ⊙ (Vᵀ dY V)] @ Vᵀ,
+        where ⊙ denotes element-wise product and L is the Loewner matrix.
+
+    This method is numerically stable and preserves symmetry.
     """
 
     @staticmethod
-    def forward(ctx, x):
+    def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor) -> torch.Tensor:
+        # Ensure symmetry for stability
         x = (x + x.mT) / 2
         eigvals, eigvecs = torch.linalg.eigh(x)
         f_eigvals = torch.exp(eigvals)
@@ -40,26 +52,38 @@ class SymmetricMatrixExponential(Function):
         return eig2matrix(f_eigvals, eigvecs)
 
     @staticmethod
-    def backward(ctx, dy):
+    def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor]:
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
+
+        # Transform dy to eigenbasis
         dx = bilinear(dy, eigvecs.mT)
+
+        # Multiply by Loewner matrix for exp
         dx *= loewner(eigvals, f_eigvals)
+
+        # Project back
         dx = bilinear(dx, eigvecs)
-        return (dx + dx.mT) / 2
+
+        # Ensure symmetry in gradient
+        return ((dx + dx.mT) / 2,)
 
 
-def loewner(eigvals, f_eigvals=None):
-    """
-    Compute the Loewner matrix L_{ij} = (f(λ_i) - f(λ_j)) / (λ_i - λ_j)
-    for the exponential function, where f(λ) = exp(λ).
+def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None) -> torch.Tensor:
+    r"""
+    Computes the Loewner matrix for the exponential function:
+        L_{ij} = (exp(λ_i) - exp(λ_j)) / (λ_i - λ_j)
+    and
+        L_{ii} = exp(λ_i)
 
     Args:
-        eigvals (torch.Tensor): Eigenvalues of shape (..., N).
-        f_eigvals (torch.Tensor, optional): Function values at eigenvalues. If None, computed as exp(eigvals).
+        eigvals (torch.Tensor): Eigenvalues of shape `(..., N)`.
+        f_eigvals (torch.Tensor, optional): Precomputed exp(eigvals). If None, computed internally.
 
     Returns:
-        torch.Tensor: Loewner matrix of shape (..., N, N).
+        torch.Tensor: Loewner matrix of shape `(..., N, N)`.
     """
     if f_eigvals is None:
         f_eigvals = torch.exp(eigvals)
+
+    # Since f = exp, df = exp(λ), so use f_eigvals for both numerator and diagonal derivative
     return _loewner(eigvals, f_eigvals, f_eigvals)

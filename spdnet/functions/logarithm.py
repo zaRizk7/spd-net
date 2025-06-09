@@ -8,35 +8,42 @@ from .utils import loewner as _loewner
 __all__ = ["sym_mat_log"]
 
 
-def sym_mat_log(x):
-    """
-    Compute the matrix logarithm of a symmetric positive definite matrix
-    using its eigendecomposition.
+def sym_mat_log(x: torch.Tensor) -> torch.Tensor:
+    r"""
+    Computes the matrix logarithm of a symmetric positive definite (SPD) matrix using eigendecomposition.
 
-    For a symmetric matrix `X`, this computes:
-        log(X) = Q @ diag(log(λ)) @ Q.T
-    where X = Q @ diag(λ) @ Q.T is the eigendecomposition of X,
-    and log(λ) is applied elementwise.
+    Given an SPD matrix `x`, this computes:
+
+        log(x) = Q @ diag(log(λ)) @ Q.T
+
+    where `x = Q @ diag(λ) @ Q.T` is the eigendecomposition of `x`,
+    and `log(λ)` is applied elementwise.
 
     Args:
-        x (torch.Tensor): Symmetric positive definite matrix of shape (..., N, N).
+        x (torch.Tensor): Input SPD matrix of shape `(..., N, N)`.
 
     Returns:
-        torch.Tensor: Matrix logarithm of `x`, of shape (..., N, N).
+        torch.Tensor: Matrix logarithm of `x`, with shape `(..., N, N)`.
     """
     return SymmetricMatrixLogarithm.apply(x)
 
 
 class SymmetricMatrixLogarithm(Function):
-    """
-    Autograd-compatible implementation of the matrix logarithm for symmetric
-    positive definite matrices using eigendecomposition.
+    r"""
+    Autograd-compatible matrix logarithm function for symmetric positive definite (SPD) matrices.
 
-    The backward pass uses the Loewner matrix to compute the gradient.
+    Forward:
+        Computes log(x) by applying log to the eigenvalues of x.
+
+    Backward:
+        Uses the Loewner matrix of log to compute the derivative:
+            d(log(x)) = V @ [L ⊙ (Vᵀ dY V)] @ Vᵀ,
+        where L is the Loewner matrix and ⊙ is element-wise multiplication.
     """
 
     @staticmethod
-    def forward(ctx, x):
+    def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor) -> torch.Tensor:
+        # Enforce symmetry for numerical stability
         x = (x + x.mT) / 2
         eigvals, eigvecs = torch.linalg.eigh(x)
         f_eigvals = torch.log(eigvals)
@@ -45,30 +52,35 @@ class SymmetricMatrixLogarithm(Function):
         return eig2matrix(f_eigvals, eigvecs)
 
     @staticmethod
-    def backward(ctx, dy):
+    def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor]:
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
+
         dx = bilinear(dy, eigvecs.mT)
         dx *= loewner(eigvals, f_eigvals)
         dx = bilinear(dx, eigvecs)
-        return (dx + dx.mT) / 2
+
+        # Ensure symmetry in the gradient
+        return ((dx + dx.mT) / 2,)
 
 
-def loewner(eigvals, f_eigvals=None):
-    """
-    Compute the Loewner matrix L_{ij} = (f(λ_i) - f(λ_j)) / (λ_i - λ_j)
-    and L_{ii} = 1 / λ_i for the logarithm function f(λ) = log(λ).
+def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None) -> torch.Tensor:
+    r"""
+    Computes the Loewner matrix for the logarithm function:
+
+        L_{ij} = (log(λ_i) - log(λ_j)) / (λ_i - λ_j),     if i ≠ j
+        L_{ii} = 1 / λ_i                                  (derivative of log at λ_i)
 
     Args:
-        eigvals (torch.Tensor): Eigenvalues of shape (..., N).
-        f_eigvals (torch.Tensor, optional): Precomputed log eigenvalues. If None, computed as log(eigvals).
+        eigvals (torch.Tensor): Eigenvalues of shape `(..., N)`.
+        f_eigvals (torch.Tensor, optional): Precomputed log(λ). If None, computed internally.
 
     Returns:
-        torch.Tensor: Loewner matrix of shape (..., N, N).
+        torch.Tensor: Loewner matrix of shape `(..., N, N)`.
     """
     if f_eigvals is None:
         f_eigvals = torch.log(eigvals)
 
     eps = torch.finfo(eigvals.dtype).eps
-    df_eigvals = 1 / (eigvals + eps)
+    df_eigvals = 1.0 / (eigvals + eps)  # Avoid division by zero for very small eigenvalues
 
     return _loewner(eigvals, f_eigvals, df_eigvals)

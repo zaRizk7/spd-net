@@ -8,70 +8,97 @@ from .utils import loewner as _loewner
 __all__ = ["sym_mat_rec"]
 
 
-def sym_mat_rec(x, eps=1e-5):
-    """
-    Perform rectification on a symmetric matrix by clamping its eigenvalues to a minimum threshold.
+def sym_mat_rec(x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+    r"""
+    Rectifies a symmetric matrix by clamping its eigenvalues to a minimum threshold.
 
-    Given a symmetric matrix `X`, this computes:
-        X_rect = Q @ diag(clamp(λ, min=eps)) @ Q.T
-    where X = Q @ diag(λ) @ Q.T is the eigendecomposition of X.
+    Given a symmetric matrix `x`, this computes:
 
-    This ensures positive definiteness and is commonly used to prevent degenerate
-    or near-singular matrices in SPD-based models.
+        rect(x) = Q @ diag(clamp(λ, min=eps)) @ Q.T
+
+    where `x = Q @ diag(λ) @ Q.T` is the eigendecomposition of `x`.
+
+    This operation ensures the output remains symmetric positive definite (SPD),
+    and is commonly used to stabilize matrices that are nearly singular.
 
     Args:
-        x (torch.Tensor): Symmetric matrix of shape (..., N, N).
-        eps (float, optional): Minimum eigenvalue threshold. Default is 1e-5.
+        x (torch.Tensor): Symmetric matrix of shape `(..., N, N)`.
+        eps (float, optional): Minimum allowed eigenvalue (default: `1e-5`).
 
     Returns:
-        torch.Tensor: Rectified matrix with the same shape as input (..., N, N).
+        torch.Tensor: Rectified SPD matrix of shape `(..., N, N)`.
     """
     return SymmetricMatrixRectification.apply(x, eps)
 
 
 class SymmetricMatrixRectification(Function):
-    """
-    Autograd-compatible implementation of symmetric matrix rectification via eigenvalue clamping.
+    r"""
+    Autograd-compatible implementation of SPD matrix rectification.
 
-    This operation clamps all eigenvalues below `eps` to `eps` and reconstructs the matrix.
-    The backward pass computes the gradient using the Loewner matrix.
+    Forward:
+        Clamps all eigenvalues below `eps` to `eps` and reconstructs the matrix.
+
+    Backward:
+        Uses the Loewner matrix of the clamped function:
+            - Derivative is 1 where `eigval > eps`
+            - Derivative is 0 where `eigval <= eps`
+
+        Returns symmetric gradient to preserve SPD structure.
     """
 
     @staticmethod
-    def forward(ctx, x, eps=1e-5):
+    def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+        # Enforce symmetry
         x = (x + x.mT) / 2
+
+        # Eigendecomposition
         eigvals, eigvecs = torch.linalg.eigh(x)
-        f_eigvals = torch.clamp(eigvals, eps)
+
+        # Clamp small eigenvalues
+        f_eigvals = torch.clamp(eigvals, min=eps)
+
+        # Save for backward
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
         ctx.eps = eps
+
         return eig2matrix(f_eigvals, eigvecs)
 
     @staticmethod
-    def backward(ctx, dy):
+    def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor, None]:
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
+
+        # Transform gradient to eigenbasis
         dx = bilinear(dy, eigvecs.mT)
+
+        # Apply Loewner mask (0 where clamped)
         dx *= loewner(eigvals, f_eigvals, ctx.eps)
+
+        # Transform back
         dx = bilinear(dx, eigvecs)
+
+        # Ensure symmetric output
         return (dx + dx.mT) / 2, None
 
 
-def loewner(eigvals, f_eigvals=None, eps=None):
-    """
-    Compute the Loewner matrix L_{ij} = (f(λ_i) - f(λ_j)) / (λ_i - λ_j)
-    for the rectification function f(λ) = clamp(λ, min=eps).
+def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None, eps: float | None = None) -> torch.Tensor:
+    r"""
+    Computes the Loewner matrix for the clamped function:
 
-    The derivative df is 1 when λ > eps and 0 otherwise.
+        f(λ) = clamp(λ, min=eps)
+
+    Derivative:
+        df/dλ = 1.0 if λ > eps, else 0.0
 
     Args:
-        eigvals (torch.Tensor): Original eigenvalues of shape (..., N).
-        f_eigvals (torch.Tensor, optional): Clamped eigenvalues of shape (..., N).
-        eps (float, optional): Threshold for clamping.
+        eigvals (torch.Tensor): Original eigenvalues of shape `(..., N)`.
+        f_eigvals (torch.Tensor, optional): Clamped eigenvalues. Computed if not provided.
+        eps (float, optional): Minimum eigenvalue threshold used during clamping.
 
     Returns:
-        torch.Tensor: Loewner matrix of shape (..., N, N).
+        torch.Tensor: Loewner matrix of shape `(..., N, N)`.
     """
     if f_eigvals is None:
-        f_eigvals = torch.clamp(eigvals, eps)
+        f_eigvals = torch.clamp(eigvals, min=eps)
 
     df_eigvals = torch.where(eigvals > eps, 1.0, 0.0)
 
