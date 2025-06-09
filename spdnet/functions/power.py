@@ -106,7 +106,7 @@ class SymmetricMatrixPower(Function):
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
         p = ctx.p
 
-        # Compute dX using Loewner matrix
+        # Compute dx using Loewner matrix
         dx = bilinear(dy, eigvecs.mT)
         dx *= loewner(eigvals, f_eigvals, p)
         dx = bilinear(dx, eigvecs)
