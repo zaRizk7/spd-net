@@ -45,7 +45,7 @@ class Bilinear(Function):
     @staticmethod
     def forward(ctx, x: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
         ctx.save_for_backward(x, z)
-        return z @ x @ z.mT
+        return torch.matmul(torch.matmul(z, x), z.mT)
 
     @staticmethod
     def backward(ctx, dy: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
