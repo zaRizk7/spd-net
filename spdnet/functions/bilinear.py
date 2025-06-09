@@ -50,10 +50,14 @@ class Bilinear(Function):
     @staticmethod
     def backward(ctx, dy: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         x, z = ctx.saved_tensors
-        # Gradient w.r.t. x: dx = z^T @ dy @ z
-        dx = z.mT @ dy @ z
 
-        # Gradient w.r.t. z: dz = (dy + dy^T) @ z @ x
-        # Ensures symmetry in dy is respected
-        dz = (dy + dy.mT) @ z @ x
+        # Allocate for more efficient memory usage
+        dx = torch.empty_like(x)
+        dz = torch.empty_like(z)
+
+        # dx = z.mT @ dy @ z
+        torch.matmul(torch.matmul(z.mT, dy), z, out=dx)
+        # dz = (dy + dy.mT) @ z @ x
+        torch.matmul(torch.matmul(dy + dy.mT, z), x, out=dz)
+
         return dx, dz

@@ -19,7 +19,7 @@ def eig2matrix(eigvals: torch.Tensor, eigvecs: torch.Tensor) -> torch.Tensor:
         torch.Tensor: Reconstructed SPD matrix of shape `(..., n, n)`.
     """
     # Expand eigvals to diagonal matrix and perform V @ diag(λ) @ V.T
-    return eigvecs * eigvals[..., None, :] @ eigvecs.mT
+    return torch.matmul(eigvecs * eigvals[..., None, :], eigvecs.mT)
 
 
 def trace(x: torch.Tensor) -> torch.Tensor:

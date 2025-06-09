@@ -25,24 +25,16 @@ def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor, df_eigvals: torch.Te
     """
     eps = torch.finfo(eigvals.dtype).eps
 
-    # (..., n, 1) and (..., 1, n) views for broadcasting
-    eigvals_i = eigvals[..., None, :]
-    eigvals_j = eigvals[..., :, None]
-    f_i = f_eigvals[..., None, :]
-    f_j = f_eigvals[..., :, None]
-
-    # Pairwise differences
-    delta_eigvals = eigvals_i - eigvals_j
-    delta_f = f_i - f_j
+    # Compute f(λ_i) - f(λ_j)
+    delta_f = f_eigvals[..., None, :] - f_eigvals[..., :, None]
+    # Compute λ_i - λ_j
+    delta_eigvals = eigvals[..., None, :] - eigvals[..., :, None]
 
     # Mask for diagonal elements (where i == j)
     is_diagonal = torch.abs(delta_eigvals) < eps
 
-    # Use broadcasted derivative values on the diagonal
-    df_matrix = df_eigvals[..., :, None].expand_as(delta_f)
-
     # Safe division for off-diagonal elements
     loewner_matrix = delta_f / (delta_eigvals + eps)
+    loewner_matrix[is_diagonal] = df_eigvals
 
-    # Fill diagonal with derivatives
-    return torch.where(is_diagonal, df_matrix, loewner_matrix)
+    return loewner_matrix
