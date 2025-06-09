@@ -1,8 +1,6 @@
-import opt_einsum as oe
 import torch
 
 from ..functions import (
-    bdot,
     bilinear,
     eig2matrix,
     fro,

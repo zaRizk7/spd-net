@@ -1,8 +1,6 @@
-import opt_einsum as oe
 import torch
 
 from ..functions import (
-    bdot,
     bilinear,
     eig2matrix,
     fro,
@@ -168,7 +166,7 @@ def airm_parallel_transport(x, z=None, s=None):
     else:
         # PT_{z→s}(x) = (z^{-1} s)^{1/2} x (z^{-1} s)^{1/2}
         z_inv = sym_mat_inv(z)
-        e = bdot(z_inv, s)
+        e = z_inv @ s
         e = sym_mat_sqrt(e)
 
     return bilinear(x, e)
