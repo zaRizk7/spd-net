@@ -32,7 +32,7 @@ class BiMap(nn.Module):
         - Output: (*, out_spatial, out_spatial)
 
     Attributes:
-        weight (nn.Parameter): Learnable weight matrix of shape (out_spatial, in_spatial)
+        weight (torch.Tensor): Learnable weight matrix of shape (out_spatial, in_spatial)
                                with enforced orthogonality via `nn.utils.parametrizations.orthogonal`.
     """
 

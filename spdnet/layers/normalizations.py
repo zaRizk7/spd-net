@@ -31,26 +31,44 @@ def riemannian_batch_norm(x, mean, std, scale=1, eps=1e-5, metric="airm"):
 
 
 class RiemannianBatchNorm(nn.Module):
-    """
-    Riemannian Batch Normalization (RBN) for SPD matrices.
+    r"""
+    Riemannian Batch Normalization (RBN) for symmetric positive-definite (SPD) matrices.
 
-    This layer generalizes batch normalization to the SPD manifold by:
-        1. Computing the batch Fréchet mean via Karcher flow.
-        2. Estimating the batch variance via squared Riemannian distances.
-        3. Applying parallel transport to the identity and scaling.
+    This layer generalizes classical batch normalization to the Riemannian manifold of SPD matrices.
+    It performs the following steps:
+        1. Computes the Riemannian batch mean via Karcher flow.
+        2. Estimates batch dispersion via the squared Riemannian distance.
+        3. Applies parallel transport to the identity, followed by normalization using a learnable
+           scalar and the batch standard deviation.
 
-    References:
-        - Brooks et al., NeurIPS 2019
-        - Kobler et al., NeurIPS 2022
+    .. note::
+        This implementation **does not include** the learnable bias term proposed in
+        Brooks et al. (NeurIPS 2019), which re-centers the normalized output to a learnable
+        SPD matrix. The identity matrix is always used as the re-centering base point here,
+        as done in Kobler et al. (NeurIPS 2022). Introducing a bias term would require
+        Riemannian-specific optimization or reparametrization techniques.
 
     Args:
-        num_spatial (int): Spatial dimension of input SPD matrices (n × n).
-        karcher_flow_steps (int): Number of iterations for mean estimation (default: 1).
-        metric (str): Riemannian metric to use ("airm" or "lem").
-        momentum (float): EMA momentum for running statistics (default: 0.1).
-        eps (float): Stability constant to avoid divide-by-zero (default: 1e-5).
-        device (torch.device, optional): Device to place parameters on.
-        dtype (torch.dtype, optional): Data type for parameters.
+        num_spatial (int): Spatial dimension of input SPD matrices (i.e., n for n×n matrices).
+        karcher_flow_steps (int, optional): Number of iterations to compute the batch mean via Karcher flow. Default: 1.
+        metric (str, optional): Riemannian metric to use; either ``"airm"`` or ``"lem"``. Default: ``"airm"``.
+        momentum (float, optional): Momentum factor for the exponential moving average (EMA) of running statistics. Default: 0.1.
+        eps (float, optional): Small constant for numerical stability. Default: 1e-5.
+        device (torch.device, optional): Device to place the module's parameters and buffers.
+        dtype (torch.dtype, optional): Data type of the module's parameters.
+
+    Shape:
+        - Input: :math:`(*, n, n)` where `n = num_spatial`
+        - Output: :math:`(*, n, n)`
+
+    Attributes:
+        scale (torch.Tensor): Learnable scalar used to re-scale normalized matrices.
+        running_mean (torch.Tensor): Running Fréchet mean of shape `(n, n)`, initialized to the identity matrix.
+        running_var (torch.Tensor): Running variance (scalar), initialized to 1.
+
+    References:
+        - Brooks et al., NeurIPS 2019. *Riemannian Batch Normalization for SPD Neural Networks*.
+        - Kobler et al., NeurIPS 2022. *SPD Domain-Specific Batch Normalization to Crack Interpretable Unsupervised Domain Adaptation in EEG*.
     """
 
     __constants__ = ["num_spatial", "karcher_flow_steps", "metric", "momentum", "eps"]
