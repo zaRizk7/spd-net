@@ -100,6 +100,6 @@ def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None, eps: f
     if f_eigvals is None:
         f_eigvals = torch.clamp(eigvals, min=eps)
 
-    df_eigvals = torch.where(eigvals > eps, 1.0, 0.0)
+    df_eigvals = (eigvals > eps).to(eigvals.dtype)
 
     return _loewner(eigvals, f_eigvals, df_eigvals)
