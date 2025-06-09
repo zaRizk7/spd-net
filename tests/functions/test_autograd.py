@@ -1,56 +1,75 @@
 import pytest
 import torch
-from torch.autograd import gradcheck, gradgradcheck
+from torch.autograd import gradcheck
 
 from spdnet.functions import bilinear, sym_mat_exp, sym_mat_log, sym_mat_pow, sym_mat_rec
 
 
-def gradcheck_fn(func, x, *args):
+def gradcheck_fn(func, x: torch.Tensor, *args: torch.Tensor) -> None:
+    r"""
+    Helper function to perform gradcheck on both batched and single samples.
+
+    Args:
+        func (callable): Function to test.
+        x (torch.Tensor): Input tensor of shape (..., N, N).
+        *args (torch.Tensor): Additional arguments to `func`.
     """
-    Helper function to perform gradcheck on a given function with input x.
-    """
-    # Batched input testing
-    assert gradcheck(func, [x, *args])
-    # Single input testing
-    assert gradcheck(func, [x[0], *args])
+    # Batched input
+    assert gradcheck(func, [x.requires_grad_(), *args])
+
+    # Single instance input
+    x0 = x[0].detach().clone().requires_grad_()
+    args0 = [arg[0] if isinstance(arg, torch.Tensor) and arg.shape == x.shape else arg for arg in args]
+    assert gradcheck(func, [x0, *args0])
 
 
-def test_bilinear(x, w):
-    """
-    Test the bilinear function using gradcheck.
+def test_bilinear(x: torch.Tensor, w: torch.Tensor) -> None:
+    r"""
+    Test the `bilinear` function with batched and singleton inputs.
     """
     gradcheck_fn(bilinear, x, w)
 
 
-def test_sym_mat_log(x):
-    """
-    Test the sym_mat_log function using gradcheck.
+def test_sym_mat_log(x: torch.Tensor) -> None:
+    r"""
+    Test the matrix logarithm function `sym_mat_log`.
     """
     gradcheck_fn(sym_mat_log, x)
 
 
-def test_sym_mat_exp(x):
+def test_sym_mat_exp(x: torch.Tensor) -> None:
+    r"""
+    Test the matrix exponential function `sym_mat_exp`.
+
+    Applies `log` first to ensure numerically stable SPD input.
     """
-    Test the sym_mat_exp function using gradcheck.
-    """
-    # Ensure stable input for exp
-    x = sym_mat_log(x)
+    x = sym_mat_log(x)  # ensures stable spectrum for exp
     gradcheck_fn(sym_mat_exp, x)
 
 
-@pytest.mark.parametrize("p", [0, 2, -1, 1 / 2])
-def test_sym_mat_pow(x, p):
+@pytest.mark.parametrize("p", [0.0, 2.0, -1.0, 0.5])
+def test_sym_mat_pow(x: torch.Tensor, p: float) -> None:
+    r"""
+    Test matrix power function `sym_mat_pow` for fixed and differentiable exponents.
+
+    Args:
+        x (torch.Tensor): SPD matrix input.
+        p (float): Scalar power to test.
     """
-    Test the sym_mat_pow function using gradcheck.
-    """
-    gradcheck_fn(lambda x: sym_mat_pow(x, p), x)
-    p = torch.tensor(p, dtype=torch.float64).requires_grad_()
-    gradcheck_fn(lambda x: sym_mat_pow(x, p), x)
+    # Static exponent
+    gradcheck_fn(sym_mat_pow, x, p)
+
+    # Learnable exponent
+    p_tensor = torch.tensor(p, dtype=x.dtype, requires_grad=True)
+    gradcheck_fn(sym_mat_pow, x, p_tensor)
+
+    # Optional: second-order test
+    # assert gradgradcheck(lambda x: sym_mat_pow(x, p_tensor), [x])
 
 
 @pytest.mark.parametrize("eps", [1e-4, 1e-5, 1e-6])
-def test_sym_mat_rec(x, eps):
+def test_sym_mat_rec(x: torch.Tensor, eps: float) -> None:
+    r"""
+    Test SPD rectification function `sym_mat_rec` with different clamping thresholds.
     """
-    Test the sym_mat_rec function using gradcheck.
-    """
-    gradcheck_fn(lambda x: sym_mat_rec(x, eps), x)
+    gradcheck_fn(sym_mat_rec, x, eps)
