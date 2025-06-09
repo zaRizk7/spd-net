@@ -65,7 +65,7 @@ class SymmetricMatrixExponential(Function):
         dx = bilinear(dx, eigvecs)
 
         # Ensure symmetry in gradient
-        return ((dx + dx.mT) / 2,)
+        return (dx + dx.mT) / 2
 
 
 def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None) -> torch.Tensor:
