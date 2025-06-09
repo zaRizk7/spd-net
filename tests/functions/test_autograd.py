@@ -38,7 +38,7 @@ def test_sym_mat_exp(x):
     gradcheck_fn(sym_mat_exp, x)
 
 
-@pytest.mark.parametrize("p", [2, -1, 1 / 2])
+@pytest.mark.parametrize("p", [0, 2, -1, 1 / 2])
 def test_sym_mat_pow(x, p):
     """
     Test the sym_mat_pow function using gradcheck.
