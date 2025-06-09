@@ -1,8 +1,8 @@
-import opt_einsum as oe
 import torch
 from torch.autograd import Function
 
-from .inner import bilinear, eig2matrix
+from .bilinear import bilinear
+from .linalg import eig2matrix
 from .utils import loewner as _loewner
 
 __all__ = ["sym_mat_pow", "sym_mat_square", "sym_mat_sqrt", "sym_mat_inv"]
@@ -80,55 +80,30 @@ class SymmetricMatrixPower(Function):
 
     @staticmethod
     def forward(ctx, x, p):
-        return forward(x, p, ctx)
+        x = (x + x.mT) / 2
+        eigvals, eigvecs = torch.linalg.eigh(x)
+        f_eigvals = torch.pow(eigvals, p)
+        ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
+        ctx.p = p
+        return eig2matrix(f_eigvals, eigvecs)
 
     @staticmethod
     def backward(ctx, dy):
-        return backward(dy, *ctx.saved_tensors, ctx.p)
+        f_eigvals, eigvals, eigvecs = ctx.saved_tensors
+        dx = bilinear(dy, eigvecs.mT)
+        dx *= loewner(eigvals, f_eigvals, ctx.p)
+        dx = bilinear(dx, eigvecs)
+        dx = (dx + dx.mT) / 2
 
+        dp = None
+        if torch.jit.isinstance(ctx.p, torch.Tensor) and ctx.p.requires_grad:
+            log_eigvals = torch.log(eigvals)
+            dp_coeffs = f_eigvals * log_eigvals
+            d_eig = bilinear(dy, eigvecs.mT)
+            diag_d_eig = torch.diagonal(d_eig, dim1=-2, dim2=-1)
+            dp = torch.sum(diag_d_eig * dp_coeffs, dim=-1)
 
-def forward(x, p, ctx=None):
-    """
-    Forward pass for computing matrix power using eigendecomposition.
-
-    Args:
-        x (torch.Tensor): Symmetric positive definite matrix of shape (..., N, N).
-        p (float): Power to which the matrix should be raised.
-        ctx (torch.autograd.function.FunctionCtx, optional): Autograd context.
-
-    Returns:
-        torch.Tensor: Matrix raised to the power `p`, of shape (..., N, N).
-    """
-    x = (x + x.mT) / 2
-    eigvals, eigvecs = torch.linalg.eigh(x)
-    f_eigvals = torch.pow(eigvals, p)
-    if ctx is not None:
-        ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
-        ctx.p = p
-    return eig2matrix(f_eigvals, eigvecs)
-
-
-def backward(dy, f_eigvals, eigvals, eigvecs, p):
-    """
-    Backward pass for matrix power with conditional gradient w.r.t. power p.
-
-    Returns:
-        Tuple[Tensor, Optional[Tensor]]: Gradient w.r.t. input matrix and (optional) power p.
-    """
-    dx = bilinear(dy, eigvecs.mT)
-    dx *= loewner(eigvals, f_eigvals, p)
-    dx = bilinear(dx, eigvecs)
-    dx = (dx + dx.mT) / 2
-
-    dp = None
-    if isinstance(p, torch.Tensor) and p.requires_grad:
-        log_eigvals = torch.log(eigvals)
-        dp_coeffs = f_eigvals * log_eigvals
-        d_eig = bilinear(dy, eigvecs.mT)
-        diag_d_eig = torch.diagonal(d_eig, dim1=-2, dim2=-1)
-        dp = oe.contract("...i,...i->...", diag_d_eig, dp_coeffs)
-
-    return dx, dp
+        return dx, dp
 
 
 def loewner(eigvals, f_eigvals=None, p=None):

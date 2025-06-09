@@ -1,7 +1,8 @@
 import torch
 from torch.autograd import Function
 
-from .inner import bilinear, eig2matrix
+from .bilinear import bilinear
+from .linalg import eig2matrix
 from .utils import loewner as _loewner
 
 __all__ = ["sym_mat_rec"]
@@ -38,52 +39,20 @@ class SymmetricMatrixRectification(Function):
 
     @staticmethod
     def forward(ctx, x, eps=1e-5):
-        return forward(x, eps, ctx)
+        x = (x + x.mT) / 2
+        eigvals, eigvecs = torch.linalg.eigh(x)
+        f_eigvals = torch.clamp(eigvals, eps)
+        ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
+        ctx.eps = eps
+        return eig2matrix(f_eigvals, eigvecs)
 
     @staticmethod
     def backward(ctx, dy):
-        return backward(dy, *ctx.saved_tensors, ctx.eps)
-
-
-def forward(x, eps, ctx=None):
-    """
-    Forward pass for symmetric matrix rectification.
-
-    Args:
-        x (torch.Tensor): Symmetric matrix of shape (..., N, N).
-        eps (float): Minimum eigenvalue threshold.
-
-    Returns:
-        torch.Tensor: Rectified symmetric matrix, shape (..., N, N).
-    """
-    x = (x + x.mT) / 2
-    eigvals, eigvecs = torch.linalg.eigh(x)
-    f_eigvals = torch.clamp(eigvals, eps)
-    if ctx is not None:
-        ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
-        ctx.eps = eps
-    return eig2matrix(f_eigvals, eigvecs)
-
-
-def backward(dy, f_eigvals, eigvals, eigvecs, eps):
-    """
-    Backward pass for symmetric matrix rectification.
-
-    Args:
-        dy (torch.Tensor): Gradient of the output, shape (..., N, N).
-        f_eigvals (torch.Tensor): Clamped eigenvalues, shape (..., N).
-        eigvals (torch.Tensor): Original eigenvalues, shape (..., N).
-        eigvecs (torch.Tensor): Eigenvectors, shape (..., N, N).
-        eps (float): Minimum eigenvalue threshold.
-
-    Returns:
-        Tuple[torch.Tensor, None]: Gradient with respect to input matrix, shape (..., N, N).
-                                   None for `eps` (non-differentiable).
-    """
-    dx = bilinear(dy, eigvecs.mT)
-    dx *= loewner(eigvals, f_eigvals, eps)
-    dx = bilinear(dx, eigvecs)
-    return (dx + dx.mT) / 2, None
+        f_eigvals, eigvals, eigvecs = ctx.saved_tensors
+        dx = bilinear(dy, eigvecs.mT)
+        dx *= loewner(eigvals, f_eigvals, ctx.eps)
+        dx = bilinear(dx, eigvecs)
+        return (dx + dx.mT) / 2, None
 
 
 def loewner(eigvals, f_eigvals=None, eps=None):

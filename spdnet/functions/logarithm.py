@@ -1,7 +1,8 @@
 import torch
 from torch.autograd import Function
 
-from .inner import bilinear, eig2matrix
+from .bilinear import bilinear
+from .linalg import eig2matrix
 from .utils import loewner as _loewner
 
 __all__ = ["sym_mat_log"]
@@ -36,49 +37,20 @@ class SymmetricMatrixLogarithm(Function):
 
     @staticmethod
     def forward(ctx, x):
-        return forward(x, ctx)
+        x = (x + x.mT) / 2
+        eigvals, eigvecs = torch.linalg.eigh(x)
+        f_eigvals = torch.log(eigvals)
+
+        ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
+        return eig2matrix(f_eigvals, eigvecs)
 
     @staticmethod
     def backward(ctx, dy):
-        return backward(dy, *ctx.saved_tensors)
-
-
-def forward(x, ctx=None):
-    """
-    Forward pass for the matrix logarithm using eigendecomposition.
-
-    Args:
-        x (torch.Tensor): Symmetric positive definite matrix of shape (..., N, N).
-        ctx (torch.autograd.function.FunctionCtx, optional): Autograd context.
-
-    Returns:
-        torch.Tensor: Matrix logarithm of `x`, of shape (..., N, N).
-    """
-    x = (x + x.mT) / 2
-    eigvals, eigvecs = torch.linalg.eigh(x)
-    f_eigvals = torch.log(eigvals)
-    if ctx is not None:
-        ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
-    return eig2matrix(f_eigvals, eigvecs)
-
-
-def backward(dy, f_eigvals, eigvals, eigvecs):
-    """
-    Backward pass for the matrix logarithm using the Loewner matrix.
-
-    Args:
-        dy (torch.Tensor): Upstream gradient of shape (..., N, N).
-        f_eigvals (torch.Tensor): Logarithm of eigenvalues, shape (..., N).
-        eigvals (torch.Tensor): Eigenvalues from forward pass, shape (..., N).
-        eigvecs (torch.Tensor): Eigenvectors from forward pass, shape (..., N, N).
-
-    Returns:
-        torch.Tensor: Gradient with respect to the input matrix, shape (..., N, N).
-    """
-    dx = bilinear(dy, eigvecs.mT)
-    dx *= loewner(eigvals, f_eigvals)
-    dx = bilinear(dx, eigvecs)
-    return (dx + dx.mT) / 2
+        f_eigvals, eigvals, eigvecs = ctx.saved_tensors
+        dx = bilinear(dy, eigvecs.mT)
+        dx *= loewner(eigvals, f_eigvals)
+        dx = bilinear(dx, eigvecs)
+        return (dx + dx.mT) / 2
 
 
 def loewner(eigvals, f_eigvals=None):
@@ -97,6 +69,6 @@ def loewner(eigvals, f_eigvals=None):
         f_eigvals = torch.log(eigvals)
 
     eps = torch.finfo(eigvals.dtype).eps
-    df_eigvals = 1 / (eigvals + eps)  # Elementwise derivative of log(λ)
+    df_eigvals = 1 / (eigvals + eps)
 
     return _loewner(eigvals, f_eigvals, df_eigvals)
