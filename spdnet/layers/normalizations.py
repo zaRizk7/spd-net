@@ -20,7 +20,7 @@ def riemannian_batch_norm(x, mean, std, scale=1, eps=1e-5, metric="airm"):
         std (Tensor): Scalar standard deviation of the batch.
         scale (Tensor): Learnable scale parameter (default: 1).
         eps (float): Small value to prevent division by zero.
-        metric (str): Riemannian metric to use ("airm" or "lem").
+        metric (str): Riemannian metric to use ("airm", "lem", or "euclidean").
 
     Returns:
         Tensor: Normalized SPD matrices of shape (..., n, n).
@@ -48,10 +48,14 @@ class RiemannianBatchNorm(nn.Module):
         as done in Kobler et al. (NeurIPS 2022). Introducing a bias term would require
         Riemannian-specific optimization or reparametrization techniques.
 
+    .. warning::
+        When using ``metric="euclidean"``, the geometry is not affine-invariant and
+        may produce invalid SPD matrices under extreme extrapolation. Use with care.
+
     Args:
         num_spatial (int): Spatial dimension of input SPD matrices (i.e., n for n×n matrices).
         karcher_flow_steps (int, optional): Number of iterations to compute the batch mean via Karcher flow. Default: 1.
-        metric (str, optional): Riemannian metric to use; either ``"airm"`` or ``"lem"``. Default: ``"airm"``.
+        metric (str, optional): Riemannian metric to use; one of ``"airm"``, ``"lem"``, or ``"euclidean"``. Default: ``"airm"``.
         momentum (float, optional): Momentum factor for the exponential moving average (EMA) of running statistics. Default: 0.1.
         eps (float, optional): Small constant for numerical stability. Default: 1e-5.
         device (torch.device, optional): Device to place the module's parameters and buffers.
