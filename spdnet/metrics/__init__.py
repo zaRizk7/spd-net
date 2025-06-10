@@ -1,29 +1,32 @@
 import torch
 
 from .affine_invariant import *
+from .euclidean import *
 from .log_euclidean import *
 
 # Supported metrics:
 # - "airm": Affine-Invariant Riemannian Metric
 # - "lem": Log-Euclidean Metric
+# - "euc": Euclidean Metric (Frobenius geometry)
 
 __all__ = ["distance", "geodesic", "log_map", "exp_map", "parallel_transport", "frechet_mean", "karcher_flow"]
 
 
 def distance(x: torch.Tensor, z: torch.Tensor | None = None, metric: str = "airm") -> torch.Tensor:
     r"""
-    Compute the Riemannian distance between SPD matrices `x` and `z` under the specified metric.
+    Compute the distance between SPD matrices `x` and `z` under the specified metric.
 
     Supported metrics:
         - "airm": d(x, z) = ||log(z^{-1/2} x z^{-1/2})||_F
         - "lem":  d(x, z) = ||log(x) - log(z)||_F
+        - "euc":  d(x, z) = ||x - z||_F
 
     If `z` is None, the identity matrix is assumed.
 
     Args:
         x (torch.Tensor): SPD matrix of shape `(..., N, N)`.
         z (torch.Tensor, optional): Reference SPD matrix. Defaults to identity.
-        metric (str): Metric to use, either "airm" or "lem".
+        metric (str): Metric to use.
 
     Returns:
         torch.Tensor: Distance tensor of shape `(...)`.
@@ -32,8 +35,10 @@ def distance(x: torch.Tensor, z: torch.Tensor | None = None, metric: str = "airm
         return airm_distance(x, z)
     elif metric == "lem":
         return lem_distance(x, z)
+    elif metric == "euc":
+        return euc_distance(x, z)
     else:
-        raise ValueError(f"Unsupported metric: {metric}. Use 'airm' or 'lem'.")
+        raise ValueError(f"Unsupported metric: {metric}. Use 'airm', 'lem', or 'euc'.")
 
 
 def geodesic(x: torch.Tensor, z: torch.Tensor | None = None, p: float = 0.5, metric: str = "airm") -> torch.Tensor:
@@ -43,6 +48,7 @@ def geodesic(x: torch.Tensor, z: torch.Tensor | None = None, p: float = 0.5, met
     Supported metrics:
         - "airm": γ(p) = z^{1/2} (z^{-1/2} x z^{-1/2})^p z^{1/2}
         - "lem":  γ(p) = exp[(1 - p) log(z) + p log(x)]
+        - "euc":  γ(p) = (1 - p) * z + p * x
 
     If `z` is None, the identity is assumed.
 
@@ -59,17 +65,20 @@ def geodesic(x: torch.Tensor, z: torch.Tensor | None = None, p: float = 0.5, met
         return airm_geodesic(x, z, p)
     elif metric == "lem":
         return lem_geodesic(x, z, p)
+    elif metric == "euc":
+        return euc_geodesic(x, z, p)
     else:
-        raise ValueError(f"Unsupported metric: {metric}. Use 'airm' or 'lem'.")
+        raise ValueError(f"Unsupported metric: {metric}. Use 'airm', 'lem', or 'euc'.")
 
 
 def log_map(x: torch.Tensor, z: torch.Tensor | None = None, metric: str = "airm") -> torch.Tensor:
     r"""
-    Compute the Riemannian logarithm map at base point `z` for SPD matrix `x`.
+    Compute the logarithm map at base point `z` for SPD matrix `x`.
 
     Supported metrics:
         - "airm": log_z(x) = z^{1/2} log(z^{-1/2} x z^{-1/2}) z^{1/2}
         - "lem":  log_z(x) = log(x) - log(z)
+        - "euc":  log_z(x) = x - z
 
     If `z` is None, identity is assumed.
 
@@ -85,17 +94,20 @@ def log_map(x: torch.Tensor, z: torch.Tensor | None = None, metric: str = "airm"
         return airm_log(x, z)
     elif metric == "lem":
         return lem_log(x, z)
+    elif metric == "euc":
+        return euc_log(x, z)
     else:
-        raise ValueError(f"Unsupported metric: {metric}. Use 'airm' or 'lem'.")
+        raise ValueError(f"Unsupported metric: {metric}. Use 'airm', 'lem', or 'euc'.")
 
 
 def exp_map(x: torch.Tensor, z: torch.Tensor | None = None, metric: str = "airm") -> torch.Tensor:
     r"""
-    Compute the Riemannian exponential map at base point `z` for a tangent vector `x`.
+    Compute the exponential map at base point `z` for tangent vector `x`.
 
     Supported metrics:
         - "airm": exp_z(x) = z^{1/2} exp(z^{-1/2} x z^{-1/2}) z^{1/2}
         - "lem":  exp_z(x) = exp(log(z) + x)
+        - "euc":  exp_z(x) = z + x
 
     If `z` is None, identity is assumed.
 
@@ -111,8 +123,10 @@ def exp_map(x: torch.Tensor, z: torch.Tensor | None = None, metric: str = "airm"
         return airm_exp(x, z)
     elif metric == "lem":
         return lem_exp(x, z)
+    elif metric == "euc":
+        return euc_exp(x, z)
     else:
-        raise ValueError(f"Unsupported metric: {metric}. Use 'airm' or 'lem'.")
+        raise ValueError(f"Unsupported metric: {metric}. Use 'airm', 'lem', or 'euc'.")
 
 
 def parallel_transport(
@@ -123,7 +137,8 @@ def parallel_transport(
 
     Supported metrics:
         - "airm": PT_{z→s}(x) = (z^{-1} s)^{1/2} x (z^{-1} s)^{1/2}
-        - "lem":  PT_{z→s}(x) = x  (trivial transport due to flat geometry)
+        - "lem":  PT_{z→s}(x) = x  (trivial due to flat log-space)
+        - "euc":  PT_{z→s}(x) = x  (trivial due to flat space)
 
     Args:
         x (torch.Tensor): Tangent vector at `z` of shape `(..., N, N)`.
@@ -138,13 +153,15 @@ def parallel_transport(
         return airm_parallel_transport(x, z, s)
     elif metric == "lem":
         return lem_parallel_transport(x, z, s)
+    elif metric == "euc":
+        return euc_parallel_transport(x, z, s)
     else:
-        raise ValueError(f"Unsupported metric: {metric}. Use 'airm' or 'lem'.")
+        raise ValueError(f"Unsupported metric: {metric}. Use 'airm', 'lem', or 'euc'.")
 
 
 def frechet_mean(*x: torch.Tensor, z: torch.Tensor | None = None, metric: str = "airm") -> torch.Tensor:
     r"""
-    Compute the Fréchet mean (Karcher mean) of SPD matrices under a Riemannian metric.
+    Compute the Fréchet mean (Karcher mean) of SPD matrices under a specified metric.
 
     General form:
         μ = exp_z(mean_i(log_z(x_i)))
@@ -173,7 +190,7 @@ def karcher_flow(x: torch.Tensor, steps: int = 1, metric: str = "airm") -> torch
     The update rule is:
         μ ← exp_μ(mean_i(log_μ(x_i)))
 
-    For the Log-Euclidean metric, a single closed-form Fréchet mean is returned.
+    For the Euclidean and Log-Euclidean metrics, a single closed-form Fréchet mean is returned.
 
     Args:
         x (torch.Tensor): Input SPD matrices of shape `(m, N, N)`.
@@ -183,10 +200,10 @@ def karcher_flow(x: torch.Tensor, steps: int = 1, metric: str = "airm") -> torch
     Returns:
         torch.Tensor: Estimated Karcher mean of shape `(N, N)`.
     """
-    if metric == "lem":
-        return frechet_mean(*x, metric="lem")
+    if metric in {"lem", "euc"}:
+        return frechet_mean(*x, metric=metric)
 
-    # Initialize with a random point from the batch
+    # AIRM flow
     i = torch.randint(x.shape[0], size=(1,)).item()
     mu = x[i]
 
