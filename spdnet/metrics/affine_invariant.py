@@ -20,11 +20,11 @@ def airm_distance(x: torch.Tensor, z: torch.Tensor | None = None) -> torch.Tenso
 
     The AIRM distance is defined as:
 
-        d(x, z) = || log(z^{-1/2} x z^{-1/2}) ||_F
+        d_AIRM(x, z) = || log(z^{-1/2} x z^{-1/2}) ||_F
 
     If `z` is None, the identity matrix is used:
 
-        d(x, I) = || log(x) ||_F
+        d_AIRM(x, I) = || log(x) ||_F
 
     Args:
         x (torch.Tensor): SPD matrix of shape `(..., N, N)`.
