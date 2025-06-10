@@ -1,15 +1,6 @@
 import torch
 
-from ..functions import (
-    bilinear,
-    eig2matrix,
-    fro,
-    sym_mat_exp,
-    sym_mat_inv,
-    sym_mat_log,
-    sym_mat_pow,
-    sym_mat_sqrt,
-)
+from ..functions import bilinear, fro, sym_mat_exp, sym_mat_inv, sym_mat_log, sym_mat_pow, sym_mat_sqrt
 
 __all__ = ["airm_distance", "airm_geodesic", "airm_log", "airm_exp", "airm_parallel_transport"]
 
