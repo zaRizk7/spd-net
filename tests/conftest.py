@@ -4,8 +4,8 @@ import torch
 from .toy_data import make_spd_matrix
 
 # Global settings
-BATCH_SIZE = 1
-N = 32
+BATCH_SIZE = 8
+N = 16
 
 torch.manual_seed(0)
 
