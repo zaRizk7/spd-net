@@ -35,6 +35,6 @@ def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor, df_eigvals: torch.Te
 
     # Safe division for off-diagonal elements
     loewner_matrix = delta_f / (delta_eigvals + eps)
-    loewner_matrix[is_diagonal] = df_eigvals
+    torch.where(is_diagonal, df_eigvals[..., None], loewner_matrix, out=loewner_matrix)
 
     return loewner_matrix
