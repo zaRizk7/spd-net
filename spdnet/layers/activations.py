@@ -11,7 +11,7 @@ class EigenActivation(nn.Module):
     Applies an elementwise transformation to the eigenvalues of a symmetric positive definite (SPD) matrix.
 
     Supported operations:
-        - 'rectify':    Applies ReLU to eigenvalues with an epsilon floor for stability.
+        - 'rectify':    Applies ReEig to eigenvalues with an epsilon floor for stability.
         - 'log':        Applies logarithm to eigenvalues.
         - 'exp':        Applies exponential to eigenvalues.
 
