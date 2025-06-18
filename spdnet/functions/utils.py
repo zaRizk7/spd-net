@@ -39,7 +39,6 @@ def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor, df_eigvals: torch.Te
     torch.where(is_diagonal, df_eigvals[..., None], loewner_matrix, out=loewner_matrix)
 
     # Prevent NaNs in the Loewner matrix
-    loewner_matrix[torch.isinf(loewner_matrix)] = 0.0
-    loewner_matrix[torch.isnan(loewner_matrix)] = 0.0
+    torch.nan_to_num_(loewner_matrix)
 
     return loewner_matrix
