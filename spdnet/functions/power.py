@@ -90,15 +90,13 @@ class SymmetricMatrixPower(Function):
 
     @staticmethod
     def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, p: float) -> torch.Tensor:
-        x = (x + x.mT) / 2  # Ensure symmetry
-        # Equivalent to eigendecomposition for SPD matrices
-        eigvecs, eigvals, _ = torch.linalg.svd(x)
+        x = (x + x.mT) / 2
+        eigvals, eigvecs = torch.linalg.eigh(x)
         f_eigvals = torch.pow(eigvals, p)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
         ctx.p = p
 
-        y = eig2matrix(f_eigvals, eigvecs)
-        return (y + y.mT) / 2
+        return eig2matrix(f_eigvals, eigvecs)
 
     @staticmethod
     def backward(

@@ -43,15 +43,12 @@ class SymmetricMatrixLogarithm(Function):
 
     @staticmethod
     def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor) -> torch.Tensor:
-        # Enforce symmetry for numerical stability
         x = (x + x.mT) / 2
-        # Equivalent to eigendecomposition for SPD matrices
-        eigvecs, eigvals, _ = torch.linalg.svd(x)
+        eigvals, eigvecs = torch.linalg.eigh(x)
         f_eigvals = torch.log(eigvals)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
 
-        y = eig2matrix(f_eigvals, eigvecs)
-        return (y + y.mT) / 2
+        return eig2matrix(f_eigvals, eigvecs)
 
     @staticmethod
     def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor]:
