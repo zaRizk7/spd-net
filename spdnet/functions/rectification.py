@@ -53,15 +53,13 @@ class SymmetricMatrixRectification(Function):
 
         # Equivalent to eigendecomposition for SPD matrices
         eigvecs, eigvals, _ = torch.linalg.svd(x)
-
-        # Clamp small eigenvalues
+        # Clamp small eigenvalues max(eps, eigvals)
         f_eigvals = torch.clamp(eigvals, min=eps)
-
-        # Save for backward
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
         ctx.eps = eps
 
-        return eig2matrix(f_eigvals, eigvecs)
+        y = eig2matrix(f_eigvals, eigvecs)
+        return (y + y.mT) / 2
 
     @staticmethod
     def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor, None]:

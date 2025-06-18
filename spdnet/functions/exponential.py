@@ -49,7 +49,9 @@ class SymmetricMatrixExponential(Function):
         eigvals, eigvecs = torch.linalg.eigh(x)
         f_eigvals = torch.exp(eigvals)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
-        return eig2matrix(f_eigvals, eigvecs)
+
+        y = eig2matrix(f_eigvals, eigvecs)
+        return (y + y.mT) / 2
 
     @staticmethod
     def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor]:

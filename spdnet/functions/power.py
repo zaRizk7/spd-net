@@ -94,11 +94,11 @@ class SymmetricMatrixPower(Function):
         # Equivalent to eigendecomposition for SPD matrices
         eigvecs, eigvals, _ = torch.linalg.svd(x)
         f_eigvals = torch.pow(eigvals, p)
-
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
         ctx.p = p
 
-        return eig2matrix(f_eigvals, eigvecs)
+        y = eig2matrix(f_eigvals, eigvecs)
+        return (y + y.mT) / 2
 
     @staticmethod
     def backward(
