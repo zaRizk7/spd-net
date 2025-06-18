@@ -31,6 +31,9 @@ class USPDNet(nn.Module):
             Whether to include Riemannian batch normalization in each encoder layer.
             Decoder does not use batch norm due to potential issues with ill-conditioned matrices.
 
+        eps (float, optional):
+            Clamping value for ReEig activation to ensure positive definiteness.
+
         device (torch.device, optional):
             Device to place model parameters on. Defaults to the current device.
 
@@ -38,7 +41,7 @@ class USPDNet(nn.Module):
             Data type for model parameters. Defaults to current dtype.
     """
 
-    def __init__(self, num_spatials, num_outputs=None, use_batch_norm=False, device=None, dtype=None):
+    def __init__(self, num_spatials, num_outputs=None, use_batch_norm=False, eps=1e-4, device=None, dtype=None):
         if len(num_spatials) < 2:
             raise ValueError("`num_spatials` must contain at least two spatial dimensions.")
 
@@ -58,6 +61,7 @@ class USPDNet(nn.Module):
                     (in_spatial, out_spatial),
                     rectify_last=i < len(num_spatials) - 1,  # Only rectify intermediate layers
                     use_batch_norm=use_batch_norm,
+                    eps=eps,
                     **factory_kwargs,
                 )
             )

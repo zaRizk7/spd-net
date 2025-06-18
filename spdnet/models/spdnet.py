@@ -32,6 +32,9 @@ class SPDNet(nn.Sequential):
             If True, apply Riemannian batch normalization after each BiMap.
             Default is False.
 
+        eps (float, optional):
+            Clamping value for ReEig activation to ensure positive definiteness.
+
         device (torch.device, optional):
             Device for model parameters. If None, uses default device.
 
@@ -40,7 +43,14 @@ class SPDNet(nn.Sequential):
     """
 
     def __init__(
-        self, num_spatials, num_outputs=None, rectify_last=False, use_batch_norm=False, device=None, dtype=None
+        self,
+        num_spatials,
+        num_outputs=None,
+        rectify_last=False,
+        use_batch_norm=False,
+        eps=1e-5,
+        device=None,
+        dtype=None,
     ):
         if len(num_spatials) < 2:
             raise ValueError("`num_spatials` must contain at least two elements (input and output sizes).")
@@ -67,7 +77,7 @@ class SPDNet(nn.Sequential):
                 continue
 
             name = f"reeig_{i:0=2d}"
-            self.add_module(name, EigenActivation("rectify", **factory_kwargs))
+            self.add_module(name, EigenActivation("rectify", eps, **factory_kwargs))
 
         # Optionally add prediction head
         if num_outputs is not None:
