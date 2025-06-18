@@ -49,7 +49,7 @@ class SymmetricMatrixRectification(Function):
     @staticmethod
     def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
         x = (x + x.mT) / 2
-        eigvals, eigvecs = torch.linalg.eigh(x)
+        eigvecs, eigvals, _ = torch.linalg.svd(x)
         # max(eps, eigvals)
         f_eigvals = torch.clamp(eigvals, eps)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
