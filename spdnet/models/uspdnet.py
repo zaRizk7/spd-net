@@ -41,7 +41,7 @@ class USPDNet(nn.Module):
             Data type for model parameters. Defaults to current dtype.
     """
 
-    def __init__(self, num_spatials, num_outputs=None, use_batch_norm=False, eps=1e-4, device=None, dtype=None):
+    def __init__(self, num_spatials, num_outputs=None, use_batch_norm=False, eps=1e-5, device=None, dtype=None):
         if len(num_spatials) < 2:
             raise ValueError("`num_spatials` must contain at least two spatial dimensions.")
 
