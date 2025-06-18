@@ -51,8 +51,8 @@ class SymmetricMatrixRectification(Function):
         # Enforce symmetry
         x = (x + x.mT) / 2
 
-        # Eigendecomposition
-        eigvals, eigvecs = torch.linalg.eigh(x)
+        # Equivalent to eigendecomposition for SPD matrices
+        eigvecs, eigvals, _ = torch.linalg.svd(x)
 
         # Clamp small eigenvalues
         f_eigvals = torch.clamp(eigvals, min=eps)
