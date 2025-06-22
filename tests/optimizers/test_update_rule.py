@@ -1,8 +1,10 @@
+from copy import deepcopy
+
 import torch
 import torch.nn.functional as F
-from spdnet.parameters import SPDParameter
+
 from spdnet.optimizers.update_rule import update_parameter
-from copy import deepcopy
+from spdnet.parameters import SPDParameter
 
 
 def is_semi_orthogonal(W, atol=1e-2):
@@ -10,7 +12,7 @@ def is_semi_orthogonal(W, atol=1e-2):
     if n < p:
         W = W.mT
     WtW = W.T @ W
-    I = torch.eye(W.shape[1], dtype=W.dtype, device=W.device)
+    I = torch.eye(W.shape[1], dtype=W.dtype, device=W.device)  # noqa: E741
     return torch.allclose(WtW, I, atol=atol)
 
 
