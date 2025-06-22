@@ -168,4 +168,4 @@ def _update_spd_parameters(param, grad, lr, metric):
     torch.matmul(grad, param_data, out=grad)
 
     # Exponential map update
-    param.data.copy_(exp_map(-lr * grad, param_data, metric))
+    param.data.copy_(exp_map(grad.mul_(-lr), param_data, metric))
