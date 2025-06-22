@@ -36,21 +36,24 @@ def _update_retraction_semi_orthogonal_parameters(param, grad, lr):
     r"""
     In-place retraction update for parameters on the Stiefel manifold.
 
-    This update projects the Euclidean gradient onto the tangent space:
+    This update projects the Euclidean gradient onto the tangent space of the manifold:
         grad ← grad - grad @ (XᵀX)
-    Then performs a gradient descent step followed by a QR-based retraction
-    to ensure the updated matrix remains on the manifold.
+
+    Then, it performs a gradient descent step followed by a QR-based retraction
+    to ensure the updated matrix remains on the Stiefel manifold.
 
     Args:
         param (SemiOrthogonalParameter): Weight constrained to the Stiefel manifold.
         grad (torch.Tensor): Euclidean gradient of the loss w.r.t. `param`.
         lr (float): Learning rate.
 
-    Reference:
-        Huang, Zhiwu, and Luc Van Gool. (2017).
-        *A Riemannian Network for SPD Matrix Learning*. Proceedings of AAAI 2017.
-        doi:10.1609/aaai.v31i1.10866
-        https://arxiv.org/pdf/1608.04233
+    References:
+        - Absil, P.-A., Mahony, R., & Sepulchre, R. (2008).
+          *Optimization Algorithms on Matrix Manifolds*. Princeton University Press.
+
+        - Huang, Zhiwu, and Luc Van Gool. (2017).
+          *A Riemannian Network for SPD Matrix Learning*. Proceedings of AAAI 2017.
+          https://arxiv.org/pdf/1608.04233
     """
     n, p = param.shape[-2:]
     param_data = param.data
