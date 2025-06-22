@@ -1,7 +1,7 @@
 import torch
 from torch.linalg import matrix_norm
 
-from ..functions import skew
+from ..functions import skew, symmetrize
 from ..metrics import exp_map
 from ..parameters import SemiOrthogonalParameter, SPDParameter
 
@@ -71,7 +71,7 @@ def _update_retraction_semi_orthogonal_parameters(param, grad, lr):
 
     # Project gradient onto the tangent space of the manifold
     # dX <- dX - dX @ (XᵀX)
-    gram = torch.matmul(param_data.mT, param_data)
+    gram = symmetrize(torch.matmul(param_data.mT, param_data))
     correction = torch.matmul(grad, gram)
     grad.sub_(correction)
 
@@ -134,7 +134,7 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps
     torch.matmul(psi, param_data, out=grad)  # reuse grad for Λ
 
     identity = torch.eye(min(n, p), dtype=param.dtype, device=param.device)
-    gram = torch.matmul(param_data, param_data.mT)
+    gram = symmetrize(torch.matmul(param_data, param_data.mT))
 
     # Correction: ∇N(X)=(X Xᵀ - I) @ X
     correction = gram - identity
