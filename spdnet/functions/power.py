@@ -4,6 +4,7 @@ from torch.autograd import Function
 from .bilinear import bilinear
 from .linalg import eig2matrix
 from .utils import loewner as _loewner
+from .utils import symmetrize
 
 __all__ = ["sym_mat_pow", "sym_mat_square", "sym_mat_sqrt", "sym_mat_inv"]
 
@@ -96,7 +97,7 @@ class SymmetricMatrixPower(Function):
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
         ctx.p = p
 
-        return eig2matrix(f_eigvals, eigvecs)
+        return symmetrize(eig2matrix(f_eigvals, eigvecs))
 
     @staticmethod
     def backward(

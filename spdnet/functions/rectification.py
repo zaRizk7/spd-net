@@ -4,6 +4,7 @@ from torch.autograd import Function
 from .bilinear import bilinear
 from .linalg import eig2matrix
 from .utils import loewner as _loewner
+from .utils import symmetrize
 
 __all__ = ["sym_mat_rec"]
 
@@ -55,7 +56,7 @@ class SymmetricMatrixRectification(Function):
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
         ctx.eps = eps
 
-        return eig2matrix(f_eigvals, eigvecs)
+        return symmetrize(eig2matrix(f_eigvals, eigvecs))
 
     @staticmethod
     def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor, None]:
