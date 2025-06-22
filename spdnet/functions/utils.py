@@ -1,6 +1,6 @@
 import torch
 
-__all__ = ["loewner"]
+__all__ = ["loewner", "symmetrize", "skew"]
 
 
 def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor, df_eigvals: torch.Tensor) -> torch.Tensor:
@@ -42,3 +42,29 @@ def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor, df_eigvals: torch.Te
     torch.nan_to_num_(loewner_matrix)
 
     return loewner_matrix
+
+
+def symmetrize(x: torch.Tensor) -> torch.Tensor:
+    r"""
+    Symmetrizes a tensor by averaging it with its transpose.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape `(..., n, n)`.
+
+    Returns:
+        torch.Tensor: Symmetrized tensor of shape `(..., n, n)`.
+    """
+    return (x + x.mT) / 2
+
+
+def skew(x: torch.Tensor) -> torch.Tensor:
+    r"""
+    Computes the skew-symmetric part of a tensor.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape `(..., n, n)`.
+
+    Returns:
+        torch.Tensor: Skew-symmetric part of the tensor, shape `(..., n, n)`.
+    """
+    return (x - x.mT) / 2
