@@ -1,9 +1,9 @@
 import torch
 from torch.linalg import matrix_norm
 
+from ..functions import skew
 from ..metrics import exp_map
 from ..parameters import SemiOrthogonalParameter, SPDParameter
-from ..functions import skew
 
 __all__ = ["update_parameter"]
 
