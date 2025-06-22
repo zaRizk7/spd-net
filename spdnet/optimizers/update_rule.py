@@ -128,6 +128,7 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps
     # Ψ(X) = 0.5 * (dX @ Xᵀ - X @ dXᵀ)
     psi = torch.matmul(grad, param_data.mT)
     psi = (psi - psi.mT) / 2
+    # Λ_proj = Ψ(X) @ X
     torch.matmul(psi, param_data, out=grad)  # reuse grad for Λ
 
     identity = torch.eye(min(n, p), dtype=param.dtype, device=param.device)
