@@ -86,6 +86,8 @@ class Adam(Optimizer):
             raise ValueError(f"Invalid orth_update_rule: {orth_update_rule}")
         if landing < 0.0:
             raise ValueError(f"Invalid landing term: {landing}")
+        if eps_landing < 0.0:
+            raise ValueError(f"Invalid eps_landing value: {eps_landing}")
         if spd_metric not in {"airm", "lem", "euc"}:
             raise ValueError(f"Invalid SPD metric: {spd_metric}")
 
