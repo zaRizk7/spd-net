@@ -24,11 +24,7 @@ def sym_mat_pow(x: torch.Tensor, p: float) -> torch.Tensor:
     Returns:
         torch.Tensor: Matrix power `x^p` of shape `(..., N, N)`.
     """
-    x = (x + x.mT) / 2
-    eigvecs, eigvals, _ = torch.linalg.svd(x)
-    f_eigvals = torch.pow(eigvals, p)
-
-    return symmetrize(eig2matrix(f_eigvals, eigvecs))
+    return SymmetricMatrixPower.apply(x, p)
 
 
 def sym_mat_square(x: torch.Tensor) -> torch.Tensor:
@@ -95,8 +91,7 @@ class SymmetricMatrixPower(Function):
 
     @staticmethod
     def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, p: float) -> torch.Tensor:
-        x = (x + x.mT) / 2
-        eigvecs, eigvals, _ = torch.linalg.svd(x)
+        eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
         f_eigvals = torch.pow(eigvals, p)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
         ctx.p = p

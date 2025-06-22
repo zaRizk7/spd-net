@@ -23,7 +23,7 @@ def bilinear(x: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Output matrix of shape `(..., m, m)`, symmetric and positive semi-definite.
     """
-    return torch.matmul(torch.matmul(z, x), z.mT)
+    return Bilinear.apply(x, z)
 
 
 class Bilinear(Function):

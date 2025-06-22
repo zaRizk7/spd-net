@@ -25,11 +25,7 @@ def sym_mat_exp(x: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Matrix exponential of shape `(..., N, N)`.
     """
-    x = (x + x.mT) / 2
-    eigvals, eigvecs = torch.linalg.eigh(x)
-    f_eigvals = torch.exp(eigvals)
-
-    return symmetrize(eig2matrix(f_eigvals, eigvecs))
+    return SymmetricMatrixExponential.apply(x)
 
 
 class SymmetricMatrixExponential(Function):
@@ -49,8 +45,7 @@ class SymmetricMatrixExponential(Function):
 
     @staticmethod
     def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor) -> torch.Tensor:
-        x = (x + x.mT) / 2
-        eigvals, eigvecs = torch.linalg.eigh(x)
+        eigvals, eigvecs = torch.linalg.eigh(symmetrize(x))
         f_eigvals = torch.exp(eigvals)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
 
