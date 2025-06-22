@@ -1,3 +1,5 @@
+from torch import eye, matmul
+from torch.linalg import matrix_norm
 from torch.nn import Parameter
 
 __all__ = ["SemiOrthogonalParameter", "SPDParameter"]
@@ -5,71 +7,69 @@ __all__ = ["SemiOrthogonalParameter", "SPDParameter"]
 
 class SemiOrthogonalParameter(Parameter):
     """
-    A parameter constrained to lie on the Stiefel manifold, specifically with orthonormal columns.
+    A parameter constrained to lie on the (batched) Stiefel manifold with orthonormal columns.
 
-    The Stiefel manifold St(n, p) is the set of all n × p matrices whose columns are orthonormal:
-        St(n, p) = { X ∈ ℝ^{n×p} | XᵀX = I_p }
-
-    In this implementation, we assume a "semi-orthogonal" setting, where:
-        - The input tensor is 2D (shape [n, p])
+    For each [..., n, p] matrix in the batch, we expect:
         - n ≥ p (tall matrix)
-        - Only column-wise orthogonality is required (XᵀX = I)
+        - XᵀX = I_p (column-wise orthonormality)
 
-    This is useful in models where preserving orthonormality helps improve conditioning,
-    gradient flow, or satisfies geometric constraints, such as:
-        - Variational autoencoders
-        - SPDNet and manifold learning
-        - Riemannian optimization layers
-
-    This class only validates the dimensionality during initialization.
-    The actual orthonormality must be enforced during training (e.g., via QR retraction or Householder parametrization).
-    Alternatively, trivialization methods can also be applied without using this class.
+    This class supports multi-head or batched parameters by checking only the last two dimensions.
+    It assumes the Stiefel constraint is handled during training (e.g., via QR retraction, Householder flows).
 
     Args:
-        data (torch.Tensor): Initial 2D tensor.
+        data (torch.Tensor): Tensor of shape [..., n, p]
         requires_grad (bool): Whether gradients should be tracked.
     """
 
     def __new__(cls, data, requires_grad=True):
-        if data.ndim != 2:
-            raise ValueError(f"SemiOrthogonalParameter only supports 2D tensors, got shape {data.shape}")
+        if data.ndim < 2:
+            raise ValueError(f"SemiOrthogonalParameter requires at least 2D input, got shape {data.shape}")
         return super().__new__(cls, data, requires_grad)
 
     def __repr__(self):
-        return "Parameter containing:\n" + super().__repr__()
+        data = self.data
+        *_, n, p = data.shape
+        shape = "XᵀX - I_p"
+        if n < p:
+            data = data.mT  # transpose last two dims
+            n, p = p, n
+            shape = "XᵀX - I_n"
+        I = eye(p, dtype=data.dtype, device=data.device)  # noqa: E741
+        WtW = matmul(data.mT, data)
+        deviation = matrix_norm(WtW - I, ord="fro").mean().item()
+        return (
+            f"Parameter containing:\n{data.__repr__()}\n"
+            f"Mean frobenius norm of ({shape}): {deviation:.4e}\n"
+            f"Shape: {data.shape}"
+        )
 
 
 class SPDParameter(Parameter):
     """
-    A parameter constrained to lie in the space of Symmetric Positive Definite (SPD) matrices.
+    A parameter constrained to lie on the (batched) SPD manifold.
 
-    The SPD manifold consists of symmetric matrices with strictly positive eigenvalues:
-        SPD(n) = { X ∈ ℝ^{n×n} | X = Xᵀ, and all eigenvalues(λ_i) > 0 }
+    For each [..., n, n] matrix in the batch:
+        - The matrix should be symmetric: X = Xᵀ
+        - Eigenvalues should be strictly positive (not checked here)
 
-    SPD matrices arise in:
-        - Covariance and kernel matrices
-        - Riemannian geometry (e.g., Log-Euclidean metric)
-        - Deep learning layers using second-order statistics
-
-    This class validates:
-        - Input is a square 2D tensor (n × n)
-        - Positive definite and symmetry isn't checked here since it accepts `torch.empty` tensors.
-
-    Note:
-        The SPD condition is checked only at initialization.
-        During training, you are responsible for maintaining SPD-ness
-        using proper update strategies (e.g., EVD clamping, matrix exponential, or affine-invariant retractions).
+    This class supports batched or multi-head SPD parameters.
+    SPD constraints must be enforced during training (e.g., via EVD rectification, exponential map).
 
     Args:
-        data (torch.Tensor): Initial SPD matrix (must be symmetric and PD).
+        data (torch.Tensor): Tensor of shape [..., n, n]
         requires_grad (bool): Whether gradients should be tracked.
     """
 
     def __new__(cls, data, requires_grad=True):
-        if data.ndim != 2 or data.shape[0] != data.shape[1]:
-            raise ValueError(f"SPDParameter must be a square 2D matrix, got shape {data.shape}")
-
+        if data.ndim < 2 or data.shape[-2] != data.shape[-1]:
+            raise ValueError(f"SPDParameter must have square trailing dimensions, got shape {data.shape}")
         return super().__new__(cls, data, requires_grad)
 
     def __repr__(self):
-        return "Parameter containing:\n" + super().__repr__()
+        data = self.data
+        deviation = matrix_norm(data - data.mT, ord="fro").mean().item()
+        return (
+            f"Parameter containing:\n{data.__repr__()}\n"
+            f"Frobenius norm of (X - Xᵀ): {deviation:.4e}\n"
+            f"Shape: {data.shape}"
+        )
