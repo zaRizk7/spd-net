@@ -27,7 +27,7 @@ def sym_mat_log(x: torch.Tensor) -> torch.Tensor:
         torch.Tensor: Matrix logarithm of `x`, with shape `(..., N, N)`.
     """
     x = (x + x.mT) / 2
-    eigvals, eigvecs = torch.linalg.eigh(x)
+    eigvecs, eigvals, _ = torch.linalg.svd(x)
     f_eigvals = torch.log(eigvals)
 
     return symmetrize(eig2matrix(f_eigvals, eigvecs))
