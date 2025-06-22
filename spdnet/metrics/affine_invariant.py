@@ -165,7 +165,7 @@ def airm_parallel_transport(
     else:
         # General case: transport from z to s
         z_inv = sym_mat_inv(z)
-        e = z_inv @ s
+        e = torch.matmul(z_inv, s)
         e = sym_mat_sqrt(e)
 
     return bilinear(x, e)
