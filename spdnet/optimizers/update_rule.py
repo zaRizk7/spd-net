@@ -159,7 +159,12 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps
     if n > p:
         grad = grad.mT
         if safe_lr.ndim > 1:
-            safe_lr = safe_lr.mT
+            # keep the shape for broadcasting (..., 1)
+            # example if we have (n_head, n, p) param size
+            # safe_lr will be (n_head), as n and p are gone
+            # due to matrix_norm
+            # to make it broadcastable, we need to add a new dimension
+            safe_lr = safe_lr[..., None]
 
     # Update parameter: X_{k+1} ← X_k - η_k * Λ(X_k)
     param.data.add_(grad, alpha=-safe_lr)
