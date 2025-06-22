@@ -69,6 +69,7 @@ def _update_retraction_semi_orthogonal_parameters(param, grad, lr):
         grad = grad.mT
 
     # Project gradient onto the tangent space of the manifold
+    # dX <- dX - dX @ (XᵀX)
     gram = torch.matmul(param_data.mT, param_data)
     correction = torch.matmul(grad, gram)
     grad.sub_(correction)
@@ -125,7 +126,7 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps
         param_data = param_data.mT
         grad = grad.mT
 
-    # Ψ(X) = 0.5 * (dX @ Xᵀ - X @ dXᵀ)
+    # Ψ(X) = SkewSymmetric(dX @ Xᵀ) = 0.5 * (dX @ Xᵀ - X @ dXᵀ)
     psi = torch.matmul(grad, param_data.mT)
     psi = (psi - psi.mT) / 2
     # Λ_proj = Ψ(X) @ X
@@ -139,7 +140,6 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps
     correction = torch.matmul(correction, param_data)
 
     # Λ(X) = Ψ(X) @ X + λ * ∇N(X)
-    # Λ(X) = Ψ(X) @ X + λ * (X Xᵀ - I) @ X
     grad.add_(correction, alpha=landing)
 
     # Compute safe step size (Preposition 6 in Ablin & Peyré, 2022)
