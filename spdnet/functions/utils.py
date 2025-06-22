@@ -23,23 +23,27 @@ def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor, df_eigvals: torch.Te
     Returns:
         torch.Tensor: Loewner matrix of shape `(..., n, n)`.
     """
-    eps = torch.finfo(eigvals.dtype).eps
+    tol = torch.finfo(eigvals.dtype).eps
 
-    # Compute f(λ_i) - f(λ_j)
-    delta_f = f_eigvals[..., None, :] - f_eigvals[..., :, None]
-    # Compute λ_i - λ_j
-    delta_eigvals = eigvals[..., None, :] - eigvals[..., :, None]
+    # (..., n, 1) and (..., 1, n) to broadcast differences
+    eig_i = eigvals[..., :, None]
+    eig_j = eigvals[..., None, :]
+    f_i = f_eigvals[..., :, None]
+    f_j = f_eigvals[..., None, :]
 
-    # Mask for diagonal elements (where i == j)
-    is_diagonal = torch.abs(delta_eigvals) < eps
+    # Difference matrices
+    delta_eig = eig_i - eig_j
+    delta_f = f_i - f_j
 
-    # Safe division for off-diagonal elements
-    loewner_matrix = delta_f / (delta_eigvals + eps)
-    # In-place assignment for diagonal elements
-    torch.where(is_diagonal, df_eigvals[..., None], loewner_matrix, out=loewner_matrix)
+    # Mask where eigenvalues are close enough to be considered equal
+    near_diag = torch.abs(delta_eig) < tol
 
-    # Prevent NaNs in the Loewner matrix
-    torch.nan_to_num_(loewner_matrix)
+    # Initialize Loewner matrix with safe division
+    loewner_matrix = torch.where(near_diag, torch.zeros_like(delta_f), delta_f / delta_eig)
+
+    # Manually set diagonal to df(λ)
+    diag_idx = torch.arange(eigvals.shape[-1], device=eigvals.device)
+    loewner_matrix[..., diag_idx, diag_idx] = df_eigvals
 
     return loewner_matrix
 
