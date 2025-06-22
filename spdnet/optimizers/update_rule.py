@@ -1,4 +1,5 @@
 import torch
+from torch.linalg import matrix_norm
 
 from ..metrics import exp_map
 from ..parameters import SemiOrthogonalParameter, SPDParameter
@@ -79,7 +80,7 @@ def _update_retraction_semi_orthogonal_parameters(param, grad, lr):
     param.data.copy_(Q)
 
 
-def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing):
+def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps=0.5):
     r"""
     In-place landing update for parameters constrained to the Stiefel manifold.
 
@@ -101,37 +102,63 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing):
         grad (torch.Tensor): Euclidean gradient of the loss w.r.t. `param`.
         lr (float): Learning rate.
         landing (float): Correction strength (λ) enforcing orthogonality.
+        eps (float): Maximum norm of norm(X.T @ X - I) to estimate safe learning rate.
 
     Reference:
         Ablin, P., & Peyré, G. (2022). *Landing: Directly Optimizing Embeddings on Manifolds*.
         In Proceedings of the 39th International Conference on Machine Learning (ICML).
         https://proceedings.mlr.press/v151/ablin22a/ablin22a.pdf
     """
+    # Cast lr and eps to the same dtype and device as param to use torch.minimum/maximum
+    lr = torch.as_tensor(lr, dtype=param.dtype, device=param.device)
+    eps = torch.as_tensor(eps, dtype=param.dtype, device=param.device)
+
     n, p = param.shape[-2:]
     param_data = param.data
     grad = grad.data
 
-    if n < p:
+    if n > p:
         param_data = param_data.mT
         grad = grad.mT
 
-    # Psi(X) = 0.5 * (dX @ Xᵀ - X @ dXᵀ)
+    # Ψ(X) = 0.5 * (dX @ Xᵀ - X @ dXᵀ)
     psi = torch.matmul(grad, param_data.mT)
     psi = (psi - psi.mT) / 2
     torch.matmul(psi, param_data, out=grad)  # reuse grad for Λ
 
-    # Correction: λ * (X Xᵀ - I) X
-    eye = torch.eye(param_data.size(0), dtype=param.dtype, device=param.device)
-    correction = torch.matmul(param_data, param_data.mT)
-    correction.sub_(eye)
+    identity = torch.eye(min(n, p), dtype=param.dtype, device=param.device)
+    gram = torch.matmul(param_data, param_data.mT)
+
+    # Compute safe step size (Preposition 6 in Ablin & Peyré, 2022)
+    # 1. Compute the frobenius norm d=N(X)=0.25*||X Xᵀ - I||_F^2
+    d = matrix_norm(gram - identity) ** 2 / 4
+    # 2. Compute a=||Ψ(X)||_F
+    a = matrix_norm(psi)
+    # 3. Compute α=2 * λ * d - 2 * a * d - 2 * λ * d^2
+    alpha = 2 * landing * d - 2 * a * d - 2 * landing * d**2
+    # 4. Compute β=a^2 + λ^2d^3 + 2λad^2 + a^2d
+    beta = a**2 + landing**2 * d**3 + 2 * landing * a * d**2 + a**2 * d
+    # 5. Compute η∗(a, d)=(sqrt(α^2 + 4β(ε−d)) + α) / (2β)
+    # Remember that it is still an multi-dimension tensor when param.ndim > 2
+    safe_lr = (torch.sqrt(alpha**2 + 4 * beta * (eps - d)) + alpha) / (2 * beta)
+    # 6. Apply min(η∗(a, d), η) to ensure the step size is not too large
+    safe_lr = torch.minimum(safe_lr, lr)
+
+    # Correction: ∇N(X)=(X Xᵀ - I) @ X
+    correction = gram - identity
     correction = torch.matmul(correction, param_data)
 
+    # Λ(X) = Ψ(X) @ X + λ * ∇N(X)
+    # Λ(X) = Ψ(X) @ X + λ * (X Xᵀ - I) @ X
     grad.add_(correction, alpha=landing)
 
-    if n < p:
+    if n > p:
         grad = grad.mT
+        if safe_lr.ndim > 1:
+            safe_lr = safe_lr.mT
 
-    param.data.add_(grad, alpha=-lr)
+    # Update parameter: X_{k+1} ← X_k - η_k * Λ(X_k)
+    param.data.add_(grad, alpha=-safe_lr)
 
 
 def _update_spd_parameters(param, grad, lr, metric):
