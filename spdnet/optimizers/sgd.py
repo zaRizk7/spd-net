@@ -31,6 +31,8 @@ class SGD(Optimizer):
         orth_update_rule (str, optional): Update rule for semi-orthogonal parameters.
             One of {"retraction", "landing", None}. Default: "retraction".
         landing (float, optional): Scaling coefficient for the landing update (used only if `orth_update_rule="landing"`, default: 1.0).
+        eps (float, optional): Maximum norm of `norm(X.T @ X - I)` to estimate safe learning rate
+            (used only if `orth_update_rule="landing"`, default: 0.5).
         spd_metric (str, optional): Riemannian metric for SPD updates.
             One of {"airm", "lem", "euc"} (default: "airm").
         maximize (bool, optional): maximize the objective instead of minimizing (default: False).
@@ -58,6 +60,7 @@ class SGD(Optimizer):
         decoupled_weight_decay=True,
         orth_update_rule="retraction",
         landing=1.0,
+        eps=0.5,
         spd_metric="airm",
         *,
         maximize=False,
@@ -88,6 +91,7 @@ class SGD(Optimizer):
             decoupled_weight_decay=decoupled_weight_decay,
             orth_update_rule=orth_update_rule,
             landing=landing,
+            eps=eps,
             spd_metric=spd_metric,
             maximize=maximize,
         )
@@ -120,6 +124,7 @@ class SGD(Optimizer):
             decoupled_weight_decay = group["decoupled_weight_decay"]
             orth_update_rule = group["orth_update_rule"]
             landing = group["landing"]
+            eps = group["eps"]
             spd_metric = group["spd_metric"]
             maximize = group["maximize"]
 
@@ -163,6 +168,6 @@ class SGD(Optimizer):
                     grad = grad.add(param, alpha=weight_decay)
 
                 # Dispatch to update rule
-                update_parameter(param, grad, lr, orth_update_rule, landing, spd_metric)
+                update_parameter(param, grad, lr, orth_update_rule, landing, eps, spd_metric)
 
         return loss

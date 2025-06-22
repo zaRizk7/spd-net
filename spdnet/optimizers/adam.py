@@ -35,6 +35,8 @@ class Adam(Optimizer):
         orth_update_rule (str, optional): Update rule for semi-orthogonal parameters.
             One of {"retraction", "landing", None}. Default: "retraction".
         landing (float, optional): Scaling coefficient for the landing update (used only if orth_update_rule="landing"). Default: 1.0.
+        eps_landing (float, optional): Maximum norm of `norm(X.T @ X - I)` to estimate safe learning rate
+            (used only if orth_update_rule="landing"). Default: 0.5.
         spd_metric (str, optional): Riemannian metric for SPD updates.
             One of {"airm", "lem", "euc"}. Default: "airm".
         amsgrad (bool, optional): Whether to use the AMSGrad variant of Adam. Default: False.
@@ -64,6 +66,7 @@ class Adam(Optimizer):
         decoupled_weight_decay=True,
         orth_update_rule="retraction",
         landing=1.0,
+        eps_landing=0.5,
         spd_metric="airm",
         amsgrad=False,
         *,
@@ -94,6 +97,7 @@ class Adam(Optimizer):
             decoupled_weight_decay=decoupled_weight_decay,
             orth_update_rule=orth_update_rule,
             landing=landing,
+            eps_landing=eps_landing,
             spd_metric=spd_metric,
             amsgrad=amsgrad,
             maximize=maximize,
@@ -126,6 +130,7 @@ class Adam(Optimizer):
             decoupled_weight_decay = group["decoupled_weight_decay"]
             orth_update_rule = group["orth_update_rule"]
             landing = group["landing"]
+            eps_landing = group["eps_landing"]
             spd_metric = group["spd_metric"]
             amsgrad = group["amsgrad"]
             maximize = group["maximize"]
@@ -189,6 +194,7 @@ class Adam(Optimizer):
                     step_size,
                     orth_update_rule,
                     landing,
+                    eps_landing,
                     spd_metric,
                 )
 
