@@ -72,7 +72,7 @@ class SymmetricMatrixRectification(Function):
         dx = bilinear(dx, eigvecs)
 
         # Ensure symmetric output
-        return (dx + dx.mT) / 2, None
+        return symmetrize(dx), None
 
 
 def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None, eps: float | None = None) -> torch.Tensor:

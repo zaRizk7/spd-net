@@ -110,7 +110,7 @@ class SymmetricMatrixPower(Function):
         dx = bilinear(dy, eigvecs.mT)
         dx *= loewner(eigvals, f_eigvals, p)
         dx = bilinear(dx, eigvecs)
-        dx = (dx + dx.mT) / 2  # Ensure gradient is symmetric
+        dx = symmetrize(dx)  # Ensure gradient is symmetric
 
         # Optional gradient w.r.t. power `p` (if needed)
         dp = None

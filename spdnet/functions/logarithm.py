@@ -60,7 +60,7 @@ class SymmetricMatrixLogarithm(Function):
         dx = bilinear(dx, eigvecs)
 
         # Ensure symmetry in the gradient
-        return (dx + dx.mT) / 2
+        return symmetrize(dx)
 
 
 def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None) -> torch.Tensor:
