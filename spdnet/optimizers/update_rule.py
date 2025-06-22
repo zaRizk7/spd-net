@@ -1,4 +1,5 @@
 import torch
+
 from ..metrics import exp_map
 from ..parameters import SemiOrthogonalParameter, SPDParameter
 

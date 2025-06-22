@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+
 from ..parameters import SemiOrthogonalParameter, SPDParameter
 from .update_rule import update_parameter
 
