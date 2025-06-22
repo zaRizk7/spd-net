@@ -4,6 +4,7 @@ from torch.nn import init
 from torch.nn.utils.parametrizations import orthogonal
 
 from ..functions import bilinear
+from ..parameters import SemiOrthogonalParameter
 
 __all__ = ["BiMap"]
 
@@ -24,6 +25,7 @@ class BiMap(nn.Module):
     Args:
         in_spatial (int): Input SPD matrix size (X of shape `(*, in_spatial, in_spatial)`).
         out_spatial (int): Output SPD matrix size (Z of shape `(*, out_spatial, out_spatial)`).
+        trivialize (bool, optional): Use weight trivialization to enforce orthogonality.
         device (torch.device, optional): Device to place the weight parameter.
         dtype (torch.dtype, optional): Data type for the weight parameter.
 
@@ -36,22 +38,25 @@ class BiMap(nn.Module):
                                with enforced orthogonality via `nn.utils.parametrizations.orthogonal`.
     """
 
-    __constants__ = ["in_spatial", "out_spatial"]
+    __constants__ = ["in_spatial", "out_spatial", "trivialize"]
     in_spatial: int
     out_spatial: int
+    trivialize: bool
     weight: torch.Tensor
 
-    def __init__(self, in_spatial, out_spatial, device=None, dtype=None):
+    def __init__(self, in_spatial, out_spatial, trivialize=False, device=None, dtype=None):
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.in_spatial = in_spatial
         self.out_spatial = out_spatial
+        self.trivialize = trivialize
 
         # Initialize learnable weight and apply orthogonal parametrization
         weight = torch.empty(out_spatial, in_spatial, **factory_kwargs)
-        self.weight = nn.Parameter(weight)
+        self.weight = SemiOrthogonalParameter(weight)
         self.reset_parameters()
-        orthogonal(self)  # Registers orthogonal parametrization on `self.weight`
+        if trivialize:
+            orthogonal(self)
 
     def reset_parameters(self):
         """
