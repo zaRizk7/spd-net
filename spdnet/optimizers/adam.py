@@ -33,7 +33,7 @@ class Adam(Optimizer):
         weight_decay (float, optional): Weight decay (L2 penalty). Default: 0.0.
         decoupled_weight_decay (bool, optional): If True, uses decoupled weight decay (as in AdamW). Default: True.
         orth_update_rule (str, optional): Update rule for semi-orthogonal parameters.
-            One of {"retraction", "landing", None}. Default: None.
+            One of {"retraction", "landing", None}. Default: "retraction".
         landing (float, optional): Scaling coefficient for the landing update (used only if orth_update_rule="landing"). Default: 1.0.
         spd_metric (str, optional): Riemannian metric for SPD updates.
             One of {"airm", "lem", "euc"}. Default: "airm".
@@ -62,7 +62,7 @@ class Adam(Optimizer):
         eps=1e-8,
         weight_decay=0.0,
         decoupled_weight_decay=True,
-        orth_update_rule=None,
+        orth_update_rule="retraction",
         landing=1.0,
         spd_metric="airm",
         amsgrad=False,

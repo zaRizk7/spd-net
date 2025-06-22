@@ -21,22 +21,18 @@ class SGD(Optimizer):
     projection or retraction onto the corresponding manifold.
 
     Args:
-        params (iterable): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
+        params (iterable): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate (default: 1e-3).
         momentum (float, optional): momentum factor (default: 0).
         dampening (float, optional): dampening for momentum (default: 0).
         weight_decay (float, optional): weight decay (L2 penalty) (default: 0).
         nesterov (bool, optional): enables Nesterov momentum (default: False).
         decoupled_weight_decay (bool, optional): if True, applies weight decay as a separate step (default: True).
-        orth_update_rule (str, optional): update rule for semi-orthogonal parameters. Options are:
-            - `"retraction"`: applies QR-based retraction.
-            - `"landing"`: applies landing update.
-            - `None`: disables update (not recommended).
-        landing (float, optional): scale factor for the landing update (default: 1.0).
-        spd_metric (str, optional): Riemannian metric used for SPD parameter update. Options:
-            - `"airm"`: Affine-Invariant Riemannian Metric.
-            - `"lem"`: Log-Euclidean Metric.
-            - `"euc"`: Euclidean metric (not guaranteed to preserve SPD).
+        orth_update_rule (str, optional): Update rule for semi-orthogonal parameters.
+            One of {"retraction", "landing", None}. Default: "retraction".
+        landing (float, optional): Scaling coefficient for the landing update (used only if `orth_update_rule="landing"`, default: 1.0).
+        spd_metric (str, optional): Riemannian metric for SPD updates.
+            One of {"airm", "lem", "euc"} (default: "airm").
         maximize (bool, optional): maximize the objective instead of minimizing (default: False).
 
     Example:
@@ -60,7 +56,7 @@ class SGD(Optimizer):
         weight_decay=0.0,
         nesterov=False,
         decoupled_weight_decay=True,
-        orth_update_rule=None,
+        orth_update_rule="retraction",
         landing=1.0,
         spd_metric="airm",
         *,
