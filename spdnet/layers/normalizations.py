@@ -129,7 +129,7 @@ class RiemannianBatchNorm(nn.Module):
             Tensor: Normalized SPD matrices.
         """
         mean, std = self._update_and_fetch_stats(x)
-        return riemannian_batch_norm(x, mean, std, self.scale, self.eps, self.metric)
+        return riemannian_batch_norm(x, mean, std, self.shift, self.scale, self.eps, self.metric)
 
     def reset_running_stats(self):
         """
