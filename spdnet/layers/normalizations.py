@@ -3,21 +3,25 @@ from torch import nn
 
 from ..functions import sym_mat_pow
 from ..metrics import distance, geodesic, karcher_flow, parallel_transport
+from ..parameters import SPDParameter
 
 __all__ = ["RiemannianBatchNorm"]
 
 
-def riemannian_batch_norm(x, mean, std, scale=1, eps=1e-5, metric="airm"):
+def riemannian_batch_norm(x, mean, std, shift=None, scale=1, eps=1e-5, metric="airm"):
     """
     Apply Riemannian batch normalization to a batch of SPD matrices.
 
     This function parallel transports each SPD matrix to the identity tangent space,
     then rescales using the standard deviation and a learnable scalar scale.
 
+    The order of operations is: Whiten → Scale → Shift, like the Euclidean BN.
+
     Args:
         x (Tensor): Input SPD matrices of shape (..., n, n).
         mean (Tensor): Batch Fréchet mean of shape (..., n, n).
         std (Tensor): Scalar standard deviation of the batch.
+        shift (Tensor, optional): Learnable (nxn SPD) shift parameter (default: None).
         scale (Tensor): Learnable scale parameter (default: 1).
         eps (float): Small value to prevent division by zero.
         metric (str): Riemannian metric to use ("airm", "lem", or "euclidean").
@@ -25,9 +29,13 @@ def riemannian_batch_norm(x, mean, std, scale=1, eps=1e-5, metric="airm"):
     Returns:
         Tensor: Normalized SPD matrices of shape (..., n, n).
     """
+    # 1. Whiten the input matrices by centering
     x = parallel_transport(x, mean, metric=metric)
+    # 2. Scale the whitened matrices
     scale = scale / (std + eps)
-    return sym_mat_pow(x, scale)
+    x = sym_mat_pow(x, scale)
+    # 3. Shift the whitened and scaled matrices if a shift is provided
+    return parallel_transport(x, s=shift, metric=metric)
 
 
 class RiemannianBatchNorm(nn.Module):
@@ -41,13 +49,6 @@ class RiemannianBatchNorm(nn.Module):
         3. Applies parallel transport to the identity, followed by normalization using a learnable
            scalar and the batch standard deviation.
 
-    .. note::
-        This implementation **does not include** the learnable bias term proposed in
-        Brooks et al. (NeurIPS 2019), which re-centers the normalized output to a learnable
-        SPD matrix. The identity matrix is always used as the re-centering base point here,
-        as done in Kobler et al. (NeurIPS 2022). Introducing a bias term would require
-        Riemannian-specific optimization or reparametrization techniques.
-
     .. warning::
         When using ``metric="euclidean"``, the geometry is not affine-invariant and
         may produce invalid SPD matrices under extreme extrapolation. Use with care.
@@ -57,6 +58,8 @@ class RiemannianBatchNorm(nn.Module):
         karcher_flow_steps (int, optional): Number of iterations to compute the batch mean via Karcher flow. Default: 1.
         metric (str, optional): Riemannian metric to use; one of ``"airm"``, ``"lem"``, or ``"euclidean"``. Default: ``"airm"``.
         momentum (float, optional): Momentum factor for the exponential moving average (EMA) of running statistics. Default: 0.1.
+        shift (bool, optional): If True, learn a (nxn SPD) shift parameter (default: True).
+        scale (bool, optional): If True, learn a scalar scale parameter (default: True).
         eps (float, optional): Small constant for numerical stability. Default: 1e-5.
         device (torch.device, optional): Device to place the module's parameters and buffers.
         dtype (torch.dtype, optional): Data type of the module's parameters.
@@ -83,7 +86,16 @@ class RiemannianBatchNorm(nn.Module):
     eps: float
 
     def __init__(
-        self, num_spatial, karcher_flow_steps=1, metric="airm", momentum=0.1, eps=1e-5, device=None, dtype=None
+        self,
+        num_spatial,
+        karcher_flow_steps=1,
+        metric="airm",
+        momentum=0.1,
+        eps=1e-5,
+        shift=True,
+        scale=True,
+        device=None,
+        dtype=None,
     ):
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
@@ -93,7 +105,16 @@ class RiemannianBatchNorm(nn.Module):
         self.momentum = momentum
         self.eps = eps
 
-        self.scale = nn.Parameter(torch.ones(1, **factory_kwargs))
+        if shift:
+            self.shift = SPDParameter(torch.eye(num_spatial, **factory_kwargs))
+        else:
+            self.register_parameter("shift", None)
+
+        if scale:
+            self.scale = nn.Parameter(torch.ones(1, **factory_kwargs))
+        else:
+            self.register_parameter("scale", None)
+
         self.register_buffer("running_mean", torch.eye(num_spatial, **factory_kwargs))
         self.register_buffer("running_var", torch.ones(1, **factory_kwargs))
 
@@ -143,7 +164,7 @@ class RiemannianBatchNorm(nn.Module):
             return self.running_mean, torch.sqrt(self.running_var)
 
         mean = karcher_flow(x, self.karcher_flow_steps, metric=self.metric)
-        var = distance(x, mean, metric=self.metric).square().mean(dim=0)
+        var = distance(x, mean, metric=self.metric).square().mean(0)
 
         self.running_mean.copy_(geodesic(self.running_mean, mean, self.momentum, self.metric))
         self.running_var.mul_(1 - self.momentum).add_(var * self.momentum)
