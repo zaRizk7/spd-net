@@ -166,7 +166,7 @@ class RiemannianBatchNorm(nn.Module):
         mean = karcher_flow(x, self.karcher_flow_steps, metric=self.metric)
         var = distance(x, mean, metric=self.metric).square().mean(0)
 
-        self.running_mean.copy_(geodesic(self.running_mean, mean, self.momentum, self.metric))
+        self.running_mean.copy_(geodesic(mean, self.running_mean, self.momentum, self.metric))
         self.running_var.mul_(1 - self.momentum).add_(var * self.momentum)
 
         return mean, torch.sqrt(var)
