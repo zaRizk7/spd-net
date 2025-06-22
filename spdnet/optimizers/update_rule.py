@@ -66,10 +66,10 @@ def _update_retraction_semi_orthogonal_parameters(param, grad, lr):
     grad.sub_(correction)
 
     # Descent step: tmp ← X - lr * grad (reusing grad as tmp)
-    torch.sub(param_data, grad, alpha=lr, out=grad)
+    param_data.add_(grad, alpha=-lr)
 
     # QR retraction back onto the Stiefel manifold
-    Q, _ = torch.linalg.qr(grad)
+    Q, _ = torch.linalg.qr(param_data)
     if n < p:
         Q = Q.mT
 
