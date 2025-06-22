@@ -24,7 +24,11 @@ def sym_mat_pow(x: torch.Tensor, p: float) -> torch.Tensor:
     Returns:
         torch.Tensor: Matrix power `x^p` of shape `(..., N, N)`.
     """
-    return SymmetricMatrixPower.apply(x, p)
+    x = (x + x.mT) / 2
+    eigvals, eigvecs = torch.linalg.eigh(x)
+    f_eigvals = torch.pow(eigvals, p)
+
+    return symmetrize(eig2matrix(f_eigvals, eigvecs))
 
 
 def sym_mat_square(x: torch.Tensor) -> torch.Tensor:

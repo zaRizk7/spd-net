@@ -29,7 +29,11 @@ def sym_mat_rec(x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
     Returns:
         torch.Tensor: Rectified SPD matrix of shape `(..., N, N)`.
     """
-    return SymmetricMatrixRectification.apply(x, eps)
+    x = (x + x.mT) / 2
+    eigvals, eigvecs = torch.linalg.eigh(x)
+    f_eigvals = torch.clamp(eigvals, eps)
+
+    return symmetrize(eig2matrix(f_eigvals, eigvecs))
 
 
 class SymmetricMatrixRectification(Function):
