@@ -7,7 +7,7 @@ from ..parameters import SemiOrthogonalParameter, SPDParameter
 __all__ = ["update_parameter"]
 
 
-def update_parameter(param, grad, lr, orth_update_rule=None, landing=1.0, spd_metric="airm"):
+def update_parameter(param, grad, lr, orth_update_rule=None, landing=1.0, eps=0.5, spd_metric="airm"):
     r"""
     Applies an in-place update to a parameter based on its type (Euclidean, Semi-Orthogonal, or SPD).
 
@@ -18,13 +18,14 @@ def update_parameter(param, grad, lr, orth_update_rule=None, landing=1.0, spd_me
         orth_update_rule (str, optional): Update rule for semi-orthogonal parameters.
             One of {"retraction", "landing", None}.
         landing (float, optional): Landing coefficient (only used if `orth_update_rule="landing"`).
+        eps (float, optional): Maximum norm of `norm(X.T @ X - I)` to estimate safe learning rate (only used if `orth_update_rule="landing"`).
         spd_metric (str, optional): Riemannian metric for SPD update ("airm", "lem", or "euc").
     """
     if isinstance(param, SemiOrthogonalParameter):
         if orth_update_rule == "retraction":
             _update_retraction_semi_orthogonal_parameters(param, grad, lr)
         elif orth_update_rule == "landing":
-            _update_landing_semi_orthogonal_parameters(param, grad, lr, landing)
+            _update_landing_semi_orthogonal_parameters(param, grad, lr, landing, eps)
         else:
             param.data.add_(grad, alpha=-lr)
     elif isinstance(param, SPDParameter):
@@ -60,6 +61,9 @@ def _update_retraction_semi_orthogonal_parameters(param, grad, lr):
     param_data = param.data
     grad = grad.data
 
+    # QR will truncate the larger dimension if n < p, so we transpose the data
+    # and gradient tensors before the update and transpose them back afterwards
+    # to preserve the correct shape for the Stiefel manifold.
     if n < p:
         param_data = param_data.mT
         grad = grad.mT
@@ -129,6 +133,14 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps
     identity = torch.eye(min(n, p), dtype=param.dtype, device=param.device)
     gram = torch.matmul(param_data, param_data.mT)
 
+    # Correction: ∇N(X)=(X Xᵀ - I) @ X
+    correction = gram - identity
+    correction = torch.matmul(correction, param_data)
+
+    # Λ(X) = Ψ(X) @ X + λ * ∇N(X)
+    # Λ(X) = Ψ(X) @ X + λ * (X Xᵀ - I) @ X
+    grad.add_(correction, alpha=landing)
+
     # Compute safe step size (Preposition 6 in Ablin & Peyré, 2022)
     # 1. Compute the frobenius norm d=N(X)=0.25*||X Xᵀ - I||_F^2
     d = matrix_norm(gram - identity) ** 2 / 4
@@ -143,14 +155,6 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps
     safe_lr = (torch.sqrt(alpha**2 + 4 * beta * (eps - d)) + alpha) / (2 * beta)
     # 6. Apply min(η∗(a, d), η) to ensure the step size is not too large
     safe_lr = torch.minimum(safe_lr, lr)
-
-    # Correction: ∇N(X)=(X Xᵀ - I) @ X
-    correction = gram - identity
-    correction = torch.matmul(correction, param_data)
-
-    # Λ(X) = Ψ(X) @ X + λ * ∇N(X)
-    # Λ(X) = Ψ(X) @ X + λ * (X Xᵀ - I) @ X
-    grad.add_(correction, alpha=landing)
 
     if n > p:
         grad = grad.mT
