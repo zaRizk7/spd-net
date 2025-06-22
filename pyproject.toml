@@ -4,14 +4,7 @@ version = "0.1.0"
 description = "An implemnentation of the SPDNet model and its variants."
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "jsonargparse==4.40.0",
-    "matplotlib==3.10.3",
-    "pandas==2.2.3",
-    "scikit-learn==1.6.1",
-    "seaborn==0.13.2",
-    "torch==2.7.0",
-]
+dependencies = ["torch==2.7.0"]
 
 [project.optional-dependencies]
 dev = [
@@ -20,15 +13,6 @@ dev = [
     "pre-commit==4.2.0",
     "pytest==8.4.0",
     "pytest-cov==6.1.1",
-]
-neuroimaging = ["nilearn==0.11.1"]
-all = [
-    "black==24.4.2",
-    "isort==5.13.2",
-    "pre-commit==4.2.0",
-    "pytest==8.4.0",
-    "pytest-cov==6.1.1",
-    "nilearn==0.11.1",
 ]
 
 [tool.black]
