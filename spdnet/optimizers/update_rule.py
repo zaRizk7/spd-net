@@ -3,6 +3,7 @@ from torch.linalg import matrix_norm
 
 from ..metrics import exp_map
 from ..parameters import SemiOrthogonalParameter, SPDParameter
+from ..functions import skew
 
 __all__ = ["update_parameter"]
 
@@ -128,7 +129,7 @@ def _update_landing_semi_orthogonal_parameters(param, grad, lr, landing=1.0, eps
 
     # Ψ(X) = SkewSymmetric(dX @ Xᵀ) = 0.5 * (dX @ Xᵀ - X @ dXᵀ)
     psi = torch.matmul(grad, param_data.mT)
-    psi = (psi - psi.mT) / 2
+    psi = skew(psi)
     # Λ_proj = Ψ(X) @ X
     torch.matmul(psi, param_data, out=grad)  # reuse grad for Λ
 
