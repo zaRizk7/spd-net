@@ -57,7 +57,7 @@ def test_update_landing(blob, semi_orthogonal_network):
     X, y = blob
     model = deepcopy(semi_orthogonal_network)
 
-    for _ in range(10):
+    for _ in range(100):
         logits = model(X)
         loss = F.cross_entropy(logits, y)
         loss.backward()
