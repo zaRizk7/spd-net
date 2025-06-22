@@ -163,10 +163,8 @@ def _update_spd_parameters(param, grad, lr, metric):
     param_data = param.data
     grad = grad.data
 
-    # Ensure symmetry of the gradient
+    # Riemannian tangential projection operator: G ← P @ 0.5 * (G + G.T) @ P
     grad = (grad + grad.mT) / 2
-
-    # Riemannian transport: G ← P @ G @ P
     torch.matmul(param_data, grad, out=grad)
     torch.matmul(grad, param_data, out=grad)
 
