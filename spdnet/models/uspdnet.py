@@ -1,7 +1,7 @@
 from torch import nn
 
 from ..layers import EigenActivation
-from ..metrics import frechet_mean
+from ..metrics import geodesic
 from .spdnet import SPDNet
 
 __all__ = ["USPDNet"]
@@ -118,7 +118,7 @@ class USPDNet(nn.Module):
 
         # Decode with skip connections via Fréchet mean fusion
         for layer, z in zip(self.decoder, reversed(zs[:-1])):
-            x = frechet_mean(layer(x), z, metric="lem")
+            x = geodesic(layer(x), z, metric="lem")
         x = self.decoder[-1](x)
 
         # Apply classifier head if defined
