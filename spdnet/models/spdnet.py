@@ -88,7 +88,7 @@ class SPDNet(nn.Sequential):
             output_layer = nn.Sequential()
 
             output_layer.add_module("logeig", EigenActivation("log", **factory_kwargs))
-            output_layer.add_module("flatten", nn.Flatten())
+            output_layer.add_module("flatten", nn.Flatten(-2, -1))
             output_layer.add_module("linear", nn.Linear(out_spatial**2, num_outputs, **factory_kwargs))
 
             self.add_module("output", output_layer)

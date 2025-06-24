@@ -93,7 +93,7 @@ class USPDNet(nn.Module):
             out_spatial = num_spatials[-1]
             self.output = nn.Sequential()
             self.output.add_module("logeig", EigenActivation("log"))
-            self.output.add_module("flatten", nn.Flatten())
+            self.output.add_module("flatten", nn.Flatten(-2, -1))
             self.output.add_module("linear", nn.Linear(out_spatial**2, num_outputs))
 
     def forward(self, x):
