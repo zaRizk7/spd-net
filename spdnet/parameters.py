@@ -33,7 +33,7 @@ class SemiOrthogonalParameter(Parameter):
         if n < p:
             data = data.mT  # transpose last two dims
             n, p = p, n
-            shape = "XᵀX - I_n"
+            shape = "X Xᵀ - I_n"
         I = eye(p, dtype=data.dtype, device=data.device)  # noqa: E741
         WtW = matmul(data.mT, data)
         deviation = matrix_norm(WtW - I, ord="fro").mean().item()
