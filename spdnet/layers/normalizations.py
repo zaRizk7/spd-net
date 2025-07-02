@@ -4,7 +4,7 @@ from torch import nn
 
 from ..functions import sym_mat_pow
 from ..metrics import distance, geodesic, karcher_flow, parallel_transport
-from ..parameters import SPDParameter
+
 
 import textwrap
 
