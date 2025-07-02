@@ -30,11 +30,12 @@ def test_bilinear(x: torch.Tensor, w: torch.Tensor) -> None:
     gradcheck_fn(bilinear, x, w)
 
 
-def test_sym_mat_log(x: torch.Tensor) -> None:
+@pytest.mark.parametrize("svd", [True, False])
+def test_sym_mat_log(x: torch.Tensor, svd: bool) -> None:
     r"""
     Test the matrix logarithm function `sym_mat_log`.
     """
-    gradcheck_fn(sym_mat_log, x)
+    gradcheck_fn(sym_mat_log, x, svd)
 
 
 def test_sym_mat_exp(x: torch.Tensor) -> None:
@@ -47,17 +48,19 @@ def test_sym_mat_exp(x: torch.Tensor) -> None:
     gradcheck_fn(sym_mat_exp, x)
 
 
+@pytest.mark.parametrize("svd", [True, False])
 @pytest.mark.parametrize("p", [0.0, 2.0, -1.0, 0.5])
-def test_sym_mat_pow(x: torch.Tensor, p: float) -> None:
+def test_sym_mat_pow(x: torch.Tensor, p: float, svd: bool) -> None:
     r"""
     Test matrix power function `sym_mat_pow` for fixed and differentiable exponents.
 
     Args:
         x (torch.Tensor): SPD matrix input.
         p (float): Scalar power to test.
+        svd (bool): Whether to use SVD or EVD for computation.
     """
     # Static exponent
-    gradcheck_fn(sym_mat_pow, x, p)
+    gradcheck_fn(sym_mat_pow, x, p, svd)
 
     # Learnable exponent
     p_tensor = torch.tensor(p, dtype=x.dtype, requires_grad=True)
@@ -67,9 +70,10 @@ def test_sym_mat_pow(x: torch.Tensor, p: float) -> None:
     # assert gradgradcheck(lambda x: sym_mat_pow(x, p_tensor), [x])
 
 
+@pytest.mark.parametrize("svd", [True, False])
 @pytest.mark.parametrize("eps", [1e-4, 1e-5, 1e-6])
-def test_sym_mat_rec(x: torch.Tensor, eps: float) -> None:
+def test_sym_mat_rec(x: torch.Tensor, eps: float, svd: bool) -> None:
     r"""
     Test SPD rectification function `sym_mat_rec` with different clamping thresholds.
     """
-    gradcheck_fn(sym_mat_rec, x, eps)
+    gradcheck_fn(sym_mat_rec, x, eps, svd)
