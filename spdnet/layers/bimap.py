@@ -5,7 +5,6 @@ from torch.nn.utils.parametrizations import orthogonal
 
 from ..functions import bilinear
 
-
 __all__ = ["BiMap"]
 
 
