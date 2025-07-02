@@ -4,7 +4,7 @@ from torch import nn
 from torch.nn.utils.parametrizations import orthogonal
 
 from ..functions import bilinear
-from ..parameters import SemiOrthogonalParameter
+
 
 __all__ = ["BiMap"]
 
