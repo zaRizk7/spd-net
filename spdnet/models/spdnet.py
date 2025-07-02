@@ -35,9 +35,6 @@ class SPDNet(nn.Sequential):
         eps (float, optional):
             Clamping value for ReEig activation to ensure positive definiteness.
 
-        trivialize (bool, optional):
-            If True, applies trivialization to BiMap weight to enforce orthogonality.
-
         device (torch.device, optional):
             Device for model parameters. If None, uses default device.
 
@@ -52,7 +49,6 @@ class SPDNet(nn.Sequential):
         rectify_last=False,
         use_batch_norm=False,
         eps=1e-5,
-        trivialize=False,
         device=None,
         dtype=None,
     ):
@@ -69,7 +65,7 @@ class SPDNet(nn.Sequential):
 
             # Add bilinear mapping layer
             name = f"bimap_{i:0=2d}"
-            self.add_module(name, BiMap(in_spatial, out_spatial, trivialize, **factory_kwargs))
+            self.add_module(name, BiMap(in_spatial, out_spatial, **factory_kwargs))
 
             # Optional Riemannian batch norm
             if use_batch_norm:
