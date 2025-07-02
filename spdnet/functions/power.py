@@ -9,7 +9,7 @@ from .utils import symmetrize
 __all__ = ["sym_mat_pow", "sym_mat_square", "sym_mat_sqrt", "sym_mat_inv"]
 
 
-def sym_mat_pow(x: torch.Tensor, p: float) -> torch.Tensor:
+def sym_mat_pow(x: torch.Tensor, p: float, svd: bool = True) -> torch.Tensor:
     r"""
     Computes the matrix power `x^p` for a symmetric positive definite (SPD) matrix `x`.
 
@@ -24,10 +24,10 @@ def sym_mat_pow(x: torch.Tensor, p: float) -> torch.Tensor:
     Returns:
         torch.Tensor: Matrix power `x^p` of shape `(..., N, N)`.
     """
-    return SymmetricMatrixPower.apply(x, p)
+    return SymmetricMatrixPower.apply(x, p, svd)
 
 
-def sym_mat_square(x: torch.Tensor) -> torch.Tensor:
+def sym_mat_square(x: torch.Tensor, svd: bool = True) -> torch.Tensor:
     r"""
     Computes the matrix square `x^2` for a symmetric matrix.
 
@@ -35,14 +35,15 @@ def sym_mat_square(x: torch.Tensor) -> torch.Tensor:
 
     Args:
         x (torch.Tensor): SPD matrix of shape `(..., N, N)`.
+        svd (bool, optional): If True, uses SVD instead of EVD. Defaults to True.
 
     Returns:
         torch.Tensor: Matrix square of shape `(..., N, N)`.
     """
-    return sym_mat_pow(x, 2)
+    return sym_mat_pow(x, 2, svd)
 
 
-def sym_mat_sqrt(x: torch.Tensor) -> torch.Tensor:
+def sym_mat_sqrt(x: torch.Tensor, svd: bool = True) -> torch.Tensor:
     r"""
     Computes the matrix square root `x^{1/2}` for a symmetric matrix.
 
@@ -50,14 +51,15 @@ def sym_mat_sqrt(x: torch.Tensor) -> torch.Tensor:
 
     Args:
         x (torch.Tensor): SPD matrix of shape `(..., N, N)`.
+        svd (bool, optional): If True, uses SVD instead of EVD. Defaults to True.
 
     Returns:
         torch.Tensor: Matrix square root of shape `(..., N, N)`.
     """
-    return sym_mat_pow(x, 0.5)
+    return sym_mat_pow(x, 0.5, svd)
 
 
-def sym_mat_inv(x: torch.Tensor) -> torch.Tensor:
+def sym_mat_inv(x: torch.Tensor, svd: bool = True) -> torch.Tensor:
     r"""
     Computes the matrix inverse `x^{-1}` for a symmetric matrix.
 
@@ -65,11 +67,12 @@ def sym_mat_inv(x: torch.Tensor) -> torch.Tensor:
 
     Args:
         x (torch.Tensor): SPD matrix of shape `(..., N, N)`.
+        svd (bool, optional): If True, uses SVD instead of EVD. Defaults to True.
 
     Returns:
         torch.Tensor: Matrix inverse of shape `(..., N, N)`.
     """
-    return sym_mat_pow(x, -1)
+    return sym_mat_pow(x, -1, svd)
 
 
 class SymmetricMatrixPower(Function):
@@ -90,8 +93,12 @@ class SymmetricMatrixPower(Function):
     """
 
     @staticmethod
-    def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, p: float) -> torch.Tensor:
-        eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+    def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, p: float, svd: bool = True) -> torch.Tensor:
+        if svd:
+            eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+        else:
+            eigvals, eigvecs = torch.linalg.eigh(symmetrize(x), "U")
+
         f_eigvals = torch.pow(eigvals, p)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
         ctx.p = p
@@ -101,7 +108,7 @@ class SymmetricMatrixPower(Function):
     @staticmethod
     def backward(
         ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None, None]:
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
         p = ctx.p
 
@@ -120,7 +127,7 @@ class SymmetricMatrixPower(Function):
             diag_d_eig = torch.diagonal(d_eig, dim1=-2, dim2=-1)
             dp = torch.sum(diag_d_eig * dp_coeffs, dim=-1)
 
-        return dx, dp
+        return dx, dp, None
 
 
 def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None, p: float | None = None) -> torch.Tensor:

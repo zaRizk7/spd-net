@@ -9,7 +9,7 @@ from .utils import symmetrize
 __all__ = ["sym_mat_rec"]
 
 
-def sym_mat_rec(x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+def sym_mat_rec(x: torch.Tensor, eps: float = 1e-5, svd: bool = True) -> torch.Tensor:
     r"""
     Rectifies a symmetric matrix by clamping its eigenvalues to a minimum threshold.
 
@@ -25,11 +25,12 @@ def sym_mat_rec(x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
     Args:
         x (torch.Tensor): Symmetric matrix of shape `(..., N, N)`.
         eps (float, optional): Minimum allowed eigenvalue (default: `1e-5`).
+        svd (bool, optional): If True, uses SVD instead of EVD (default: `True`).
 
     Returns:
         torch.Tensor: Rectified SPD matrix of shape `(..., N, N)`.
     """
-    return SymmetricMatrixRectification.apply(x, eps)
+    return SymmetricMatrixRectification.apply(x, eps, svd)
 
 
 class SymmetricMatrixRectification(Function):
@@ -48,8 +49,14 @@ class SymmetricMatrixRectification(Function):
     """
 
     @staticmethod
-    def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
-        eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+    def forward(
+        ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, eps: float = 1e-5, svd: bool = True
+    ) -> torch.Tensor:
+        if svd:
+            eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+        else:
+            eigvals, eigvecs = torch.linalg.eigh(symmetrize(x), "U")
+
         # max(eps, eigvals)
         f_eigvals = torch.clamp(eigvals, eps)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
@@ -58,7 +65,7 @@ class SymmetricMatrixRectification(Function):
         return symmetrize(eig2matrix(f_eigvals, eigvecs))
 
     @staticmethod
-    def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor, None]:
+    def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor, None, None]:
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
 
         # Transform gradient to eigenbasis
@@ -71,7 +78,7 @@ class SymmetricMatrixRectification(Function):
         dx = bilinear(dx, eigvecs)
 
         # Ensure symmetric output
-        return symmetrize(dx), None
+        return symmetrize(dx), None, None
 
 
 def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None, eps: float | None = None) -> torch.Tensor:

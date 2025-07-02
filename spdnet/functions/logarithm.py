@@ -9,7 +9,7 @@ from .utils import symmetrize
 __all__ = ["sym_mat_log"]
 
 
-def sym_mat_log(x: torch.Tensor) -> torch.Tensor:
+def sym_mat_log(x: torch.Tensor, svd: bool = True) -> torch.Tensor:
     r"""
     Computes the matrix logarithm of a symmetric positive definite (SPD) matrix using eigendecomposition.
 
@@ -22,6 +22,7 @@ def sym_mat_log(x: torch.Tensor) -> torch.Tensor:
 
     Args:
         x (torch.Tensor): Input SPD matrix of shape `(..., N, N)`.
+        svd (bool, optional): If True, uses SVD instead of EVD. Defaults to True.
 
     Returns:
         torch.Tensor: Matrix logarithm of `x`, with shape `(..., N, N)`.
@@ -43,15 +44,19 @@ class SymmetricMatrixLogarithm(Function):
     """
 
     @staticmethod
-    def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor) -> torch.Tensor:
-        eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+    def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, svd: bool = True) -> torch.Tensor:
+        if svd:
+            eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+        else:
+            eigvals, eigvecs = torch.linalg.eigh(symmetrize(x), "U")
+
         f_eigvals = torch.log(eigvals)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)
 
         return symmetrize(eig2matrix(f_eigvals, eigvecs))
 
     @staticmethod
-    def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor]:
+    def backward(ctx: torch.autograd.function.FunctionCtx, dy: torch.Tensor) -> tuple[torch.Tensor, None]:
         f_eigvals, eigvals, eigvecs = ctx.saved_tensors
 
         dx = bilinear(dy, eigvecs.mT)
@@ -59,7 +64,7 @@ class SymmetricMatrixLogarithm(Function):
         dx = bilinear(dx, eigvecs)
 
         # Ensure symmetry in the gradient
-        return symmetrize(dx)
+        return symmetrize(dx), None
 
 
 def loewner(eigvals: torch.Tensor, f_eigvals: torch.Tensor | None = None) -> torch.Tensor:
