@@ -1,9 +1,12 @@
+import geoopt
 import torch
 from torch import nn
 
 from ..functions import sym_mat_pow
 from ..metrics import distance, geodesic, karcher_flow, parallel_transport
 from ..parameters import SPDParameter
+
+import textwrap
 
 __all__ = ["RiemannianBatchNorm"]
 
@@ -75,7 +78,6 @@ class RiemannianBatchNorm(nn.Module):
 
     References:
         - Brooks et al., NeurIPS 2019. *Riemannian Batch Normalization for SPD Neural Networks*.
-        - Kobler et al., NeurIPS 2022. *SPD Domain-Specific Batch Normalization to Crack Interpretable Unsupervised Domain Adaptation in EEG*.
     """
 
     __constants__ = ["num_spatial", "karcher_flow_steps", "metric", "momentum", "eps"]
@@ -106,7 +108,9 @@ class RiemannianBatchNorm(nn.Module):
         self.eps = eps
 
         if shift:
-            self.shift = SPDParameter(torch.eye(num_spatial, **factory_kwargs))
+            manifold = geoopt.SymmetricPositiveDefinite()
+            shift = torch.eye(num_spatial, **factory_kwargs)
+            self.shift = geoopt.ManifoldParameter(shift, manifold)
         else:
             self.register_parameter("shift", None)
 
@@ -117,6 +121,18 @@ class RiemannianBatchNorm(nn.Module):
 
         self.register_buffer("running_mean", torch.eye(num_spatial, **factory_kwargs))
         self.register_buffer("running_var", torch.ones(1, **factory_kwargs))
+
+    def __repr__(self):
+        attrs = [
+            f"num_spatial={self.num_spatial}",
+            f"karcher_flow_steps={self.karcher_flow_steps}",
+            f"metric='{self.metric}'",
+            f"momentum={self.momentum}",
+            f"eps={self.eps}",
+        ]
+        inner = ", ".join(attrs)
+        wrapped = textwrap.fill(inner, width=80, subsequent_indent=" " * 4)
+        return f"{self.__class__.__name__}(\n    {wrapped}\n)"
 
     def forward(self, x):
         """
@@ -141,6 +157,20 @@ class RiemannianBatchNorm(nn.Module):
             torch.eye(self.num_spatial, device=self.running_mean.device, dtype=self.running_mean.dtype)
         )
         self.running_var.fill_(1.0)
+
+    def reset_parameters(self):
+        """
+        Re-initialize the learnable parameters:
+            - Reset shift to identity.
+            - Reset scale to 1.
+            - Reset running statistics.
+        """
+        if self.shift is not None:
+            factory_kwargs = {"device": self.shift.device, "dtype": self.shift.dtype}
+            self.shift.data.copy_(torch.eye(self.num_spatial, **factory_kwargs))
+        if self.scale is not None:
+            self.scale.data.fill_(1.0)
+        self.reset_running_stats()
 
     @torch.no_grad()
     def _update_and_fetch_stats(self, x):
