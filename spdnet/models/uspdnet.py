@@ -28,7 +28,7 @@ class USPDNet(nn.Module):
             Default is None (no classifier).
 
         use_batch_norm (bool, optional):
-            Whether to include Riemannian batch normalization in each encoder layer.
+            Whether to include SPD batch normalization in each encoder layer.
             Decoder does not use batch norm due to potential issues with ill-conditioned matrices.
 
         eps (float, optional):

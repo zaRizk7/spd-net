@@ -1,6 +1,6 @@
 from torch import nn
 
-from ..layers import BiMap, EigenActivation, RiemannianBatchNorm
+from ..layers import BiMap, EigenActivation, SPDBatchNorm
 
 __all__ = ["SPDNet"]
 
@@ -29,7 +29,7 @@ class SPDNet(nn.Sequential):
             Default is False.
 
         use_batch_norm (bool, optional):
-            If True, apply Riemannian batch normalization after each BiMap.
+            If True, apply SPD batch normalization after each BiMap.
             Default is False.
 
         eps (float, optional):
@@ -70,7 +70,7 @@ class SPDNet(nn.Sequential):
             # Optional Riemannian batch norm
             if use_batch_norm:
                 name = f"bn_{i:0=2d}"
-                self.add_module(name, RiemannianBatchNorm(out_spatial, **factory_kwargs))
+                self.add_module(name, SPDBatchNorm(out_spatial, **factory_kwargs))
 
             # Optional ReEig (rectify eigenvalues) unless it's the final layer and `rectify_last` is False
             if i == len(num_spatials) - 1 and not rectify_last:
