@@ -48,6 +48,12 @@ class EigenActivation(nn.Module):
         # Store epsilon as a buffer to support device/dtype consistency and tracing
         self.register_buffer("eps", torch.tensor(eps, **factory_kwargs))
 
+    def __repr__(self):
+        args = [f"activation='{self.activation}'"]
+        if self.activation == "rectify":
+            args.append(f"eps={self.eps.item()}")
+        return f"{self.__class__.__name__}({', '.join(args)})"
+
     def forward(self, x):
         """
         Forward pass that applies the selected eigenvalue activation function.
