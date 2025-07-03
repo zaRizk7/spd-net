@@ -43,7 +43,7 @@ class BiMap(nn.Module):
     __constants__ = ["in_spatial", "out_spatial"]
     in_spatial: int
     out_spatial: int
-    weight: torch.Tensor
+    _weight: torch.Tensor
 
     def __init__(self, in_spatial, out_spatial, device=None, dtype=None):
         factory_kwargs = {"device": device, "dtype": dtype}
