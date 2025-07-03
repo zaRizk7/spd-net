@@ -1,7 +1,6 @@
 import geoopt
 import torch
 from torch import nn
-from torch.nn.utils.parametrizations import orthogonal
 
 from ..functions import bilinear
 
