@@ -16,7 +16,7 @@ dev = [
 ]
 
 [tool.setuptools]
-py-modules = ["spdnet"]
+packages = ["spdnet"]
 
 [tool.black]
 line-length = 120
