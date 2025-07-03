@@ -7,10 +7,10 @@ from torch import nn
 from ..functions import sym_mat_pow
 from ..metrics import distance, geodesic, karcher_flow, parallel_transport
 
-__all__ = ["RiemannianBatchNorm"]
+__all__ = ["SPDBatchNorm"]
 
 
-def riemannian_batch_norm(x, mean, std, shift=None, scale=1, eps=1e-5, metric="airm"):
+def spd_batch_norm(x, mean, std, shift=None, scale=1, eps=1e-5, metric="airm"):
     """
     Apply Riemannian batch normalization to a batch of SPD matrices.
 
@@ -40,7 +40,7 @@ def riemannian_batch_norm(x, mean, std, shift=None, scale=1, eps=1e-5, metric="a
     return parallel_transport(x, s=shift, metric=metric)
 
 
-class RiemannianBatchNorm(nn.Module):
+class SPDBatchNorm(nn.Module):
     r"""
     Riemannian Batch Normalization (RBN) for symmetric positive-definite (SPD) matrices.
 
@@ -52,7 +52,7 @@ class RiemannianBatchNorm(nn.Module):
            scalar and the batch standard deviation.
 
     .. warning::
-        When using ``metric="euclidean"``, the geometry is not affine-invariant and
+        When using ``metric!="airm"``, the geometry is not affine-invariant and
         may produce invalid SPD matrices under extreme extrapolation. Use with care.
 
     Args:
@@ -144,7 +144,7 @@ class RiemannianBatchNorm(nn.Module):
             Tensor: Normalized SPD matrices.
         """
         mean, std = self._update_and_fetch_stats(x)
-        return riemannian_batch_norm(x, mean, std, self.shift, self.scale, self.eps, self.metric)
+        return spd_batch_norm(x, mean, std, self.shift, self.scale, self.eps, self.metric)
 
     def reset_running_stats(self):
         """
