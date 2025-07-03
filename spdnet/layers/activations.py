@@ -51,7 +51,7 @@ class EigenActivation(nn.Module):
     def __repr__(self):
         args = [f"activation='{self.activation}'"]
         if self.activation == "rectify":
-            args.append(f"eps={self.eps.item()}")
+            args.append(f"eps={self.eps.item():.1e}")
         return f"{self.__class__.__name__}({', '.join(args)})"
 
     def forward(self, x):
