@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-from spdnet.parameters import SemiOrthogonalParameter
 
 from .toy_data import make_blobs, make_spd_matrix
 
