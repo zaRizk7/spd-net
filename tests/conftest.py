@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-
 from .toy_data import make_blobs, make_spd_matrix
 
 # Global settings
@@ -55,22 +54,3 @@ def blob():
         torch.Tensor: Tensor of shape `(n_samples,)` containing the labels for each blob.
     """
     return make_blobs(BATCH_SIZE, N)
-
-
-@pytest.fixture(scope="session")
-def semi_orthogonal_network():
-    r"""
-    Creates a simple semi-orthogonal network for testing.
-
-    Returns:
-        torch.nn.Module: A network with semi-orthogonal weight in the first layer.
-    """
-    network = torch.nn.Sequential(torch.nn.Linear(N, N // 2, bias=False), torch.nn.ReLU(), torch.nn.Linear(N // 2, C))
-
-    ortho_weight = torch.nn.init.orthogonal_(torch.empty_like(network[0].weight))
-    semi_param = SemiOrthogonalParameter(ortho_weight)
-
-    # Replace and re-register
-    network[0].register_parameter("weight", semi_param)
-
-    return network
