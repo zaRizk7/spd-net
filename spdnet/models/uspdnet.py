@@ -72,7 +72,13 @@ class USPDNet(nn.Module):
             out_spatial = num_spatials[i - 1]
 
             self.decoder.append(
-                SPDNet((in_spatial, out_spatial), rectify_last=i > 1, use_batch_norm=False, **factory_kwargs)
+                SPDNet(
+                    (in_spatial, out_spatial),
+                    rectify_last=i > 1,
+                    use_batch_norm=use_batch_norm and i > 1,
+                    eps=eps,
+                    **factory_kwargs,
+                )
             )
 
         # Optional classification head (logEig + flatten + linear)
