@@ -27,7 +27,7 @@ def sym_mat_log(x: torch.Tensor, svd: bool = True) -> torch.Tensor:
     Returns:
         torch.Tensor: Matrix logarithm of `x`, with shape `(..., N, N)`.
     """
-    return SymmetricMatrixLogarithm.apply(x)
+    return SymmetricMatrixLogarithm.apply(x, svd)
 
 
 class SymmetricMatrixLogarithm(Function):
@@ -45,10 +45,11 @@ class SymmetricMatrixLogarithm(Function):
 
     @staticmethod
     def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, svd: bool = True) -> torch.Tensor:
+        x = symmetrize(x)
         if svd:
-            eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+            eigvecs, eigvals, _ = torch.linalg.svd(x)
         else:
-            eigvals, eigvecs = torch.linalg.eigh(symmetrize(x), "U")
+            eigvals, eigvecs = torch.linalg.eigh(x, "U")
 
         f_eigvals = torch.log(eigvals)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)

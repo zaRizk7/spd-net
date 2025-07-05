@@ -20,6 +20,7 @@ def sym_mat_pow(x: torch.Tensor, p: float, svd: bool = True) -> torch.Tensor:
     Args:
         x (torch.Tensor): SPD matrix of shape `(..., N, N)`.
         p (float): Exponent to which the matrix is raised.
+        svd (bool, optional): If True, uses SVD instead of EVD. Defaults to True.
 
     Returns:
         torch.Tensor: Matrix power `x^p` of shape `(..., N, N)`.
@@ -94,10 +95,11 @@ class SymmetricMatrixPower(Function):
 
     @staticmethod
     def forward(ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, p: float, svd: bool = True) -> torch.Tensor:
+        x = symmetrize(x)
         if svd:
-            eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+            eigvecs, eigvals, _ = torch.linalg.svd(x)
         else:
-            eigvals, eigvecs = torch.linalg.eigh(symmetrize(x), "U")
+            eigvals, eigvecs = torch.linalg.eigh(x, "U")
 
         f_eigvals = torch.pow(eigvals, p)
         ctx.save_for_backward(f_eigvals, eigvals, eigvecs)

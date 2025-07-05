@@ -52,10 +52,11 @@ class SymmetricMatrixRectification(Function):
     def forward(
         ctx: torch.autograd.function.FunctionCtx, x: torch.Tensor, eps: float = 1e-5, svd: bool = True
     ) -> torch.Tensor:
+        x = symmetrize(x)
         if svd:
-            eigvecs, eigvals, _ = torch.linalg.svd(symmetrize(x))
+            eigvecs, eigvals, _ = torch.linalg.svd(x)
         else:
-            eigvals, eigvecs = torch.linalg.eigh(symmetrize(x), "U")
+            eigvals, eigvecs = torch.linalg.eigh(x, "U")
 
         # max(eps, eigvals)
         f_eigvals = torch.clamp(eigvals, eps)
